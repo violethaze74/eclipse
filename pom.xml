@@ -1,16 +1,72 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0"
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
+                            http://maven.apache.org/xsd/maven-4.0.0.xsd" 
+    xmlns="http://maven.apache.org/POM/4.0.0"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.google.gcp.eclipse</groupId>
   <artifactId>trunk</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
+  <version>94.0.0-SNAPSHOT</version>
   <packaging>pom</packaging>
-  
+
+  <modules>
+    <module>gcp-repo</module>
+    <module>features/com.google.gcp.eclipse.suite.e45.feature</module>
+    <module>plugins/com.google.gcp.eclipse.appengine.localserver</module>
+  </modules>
+
   <properties>
-      <tycho.version>0.24.0</tycho.version>
-      <tycho-extras.version>0.24.0</tycho-extras.version>
-      <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <tycho.version>0.24.0</tycho.version>
+    <tycho-extras.version>0.24.0</tycho-extras.version>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <eclipse.target>mars</eclipse.target>
+    <eclipse-repo.url>http://download.eclipse.org/releases/${eclipse.target}</eclipse-repo.url>
   </properties>
-  
+
+  <repositories>
+    <repository>
+      <id>eclipse</id>
+      <url>${eclipse-repo.url}</url>
+      <layout>p2</layout>
+    </repository>
+  </repositories>
+      
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.eclipse.tycho</groupId>
+        <artifactId>tycho-maven-plugin</artifactId>
+        <extensions>true</extensions>
+      </plugin>
+      <plugin>
+        <groupId>org.eclipse.tycho</groupId>
+        <artifactId>tycho-compiler-plugin</artifactId>
+        <version>${tycho.version}</version>
+        <configuration>
+          <showWarnings>true</showWarnings>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.5.1</version>
+        <configuration>
+          <source>1.7</source>
+          <target>1.7</target>
+        </configuration>
+      </plugin>
+    </plugins>
+
+    <pluginManagement>
+      <plugins>
+       <plugin>
+          <groupId>org.eclipse.tycho</groupId>
+          <artifactId>tycho-maven-plugin</artifactId>
+          <version>${tycho.version}</version>
+          <extensions>true</extensions>
+       </plugin>
+      </plugins>
+    </pluginManagement>
+
+  </build>
 </project>

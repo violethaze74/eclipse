@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<site>
+  <feature url="../features/com.google.gcp.eclipse.suite.e45.feature"
+      id="com.google.gcp.eclipse.suite.e45.feature" version="94.0.0.qualifier">
+    <category name="GCP" />
+  </feature>
+  <category-def name="GCP" label="Google Cloud Plugin for Eclipse" />
+</site>
