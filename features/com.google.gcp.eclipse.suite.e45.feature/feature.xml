@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feature
+      id="com.google.gcp.eclipse.suite.e45.feature"
+      label="Google Cloud Platform for Eclipse 4.5"
+      version="94.0.0.qualifier"
+      provider-name="Google, Inc."
+      plugin="com.google.gcp.eclipse.suite">
+
+   <description>
+      Support development of Google Cloud Platform-based Projects in Eclipse 4.5
+   </description>
+
+   <copyright>
+      Copyright 2016
+   </copyright>
+
+   <license>
+      Todo
+   </license>
+
+   <plugin
+         id="com.google.gcp.eclipse.appengine.localserver"
+         download-size="0"
+         install-size="0"
+         version="94.0.0.qualifier"
+         unpack="false"/>
+
+</feature>

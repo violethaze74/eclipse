@@ -1,0 +1,14 @@
+<project 
+   name="deployappengine"
+   default="deploy.appengine"
+   basedir=".">
+   
+  <target name="deploy.appengine">
+    <echo message="TODO: deploy this"/>
+  </target>
+  
+  <target name="undeploy.appengine">
+    <echo message="TODO: undeploy this"/>
+  </target>
+  
+</project>

@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tns:ServerRuntime
+   xmlns:tns="http://eclipse.org/jst/server/generic/ServerTypeDefinition"
+   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+   xsi:schemaLocation="http://eclipse.org/jst/server/generic/ServerTypeDefinition ServerTypeDefinitionSchema.xsd"
+   name="GCloud" version="v94.0.0">
+
+  <property id="cloudSdkDirectory"
+      label="Directory where gcloud is installed"
+      type="directory"
+      context="runtime"
+      default="/usr/local/google/google-cloud-sdk" />
+  <property id="appEngineSdkDirectory"
+      label="Directory that contains App Engine SDK"
+      type="directory"
+      context="runtime"
+      default="/usr/local/google/appengine-java-sdk" />  
+   <!-- TODO we may not need this; check -->
+  <property id="serverRootDirectory"
+      label="Server Root"
+      type="directory"
+      context="server"
+      default="/usr/local/www" />
+  <!-- TODO figure out how to point this at the current project -->
+  <property id="webappDirectory"
+      label="Web app directory (parent of WEB-INF)"
+      type="directory"
+      context="server"
+      default="/usr/local/www/WebContent" />
+  <property id="autoDeployDirectory"
+      label="Where should the app live?"
+      type="directory"
+      context="server"
+      default="/tmp/autodeploy" />
+  <property id="port"
+      label="Server Port"
+      type="string"
+      context="server"
+      default="8080" />
+  <property id="debugPort"
+      label="Debug Port"
+      type="string"
+      context="server"
+      default="9009" />
+    
+  <port>
+    <no>${port}</no>
+    <name>Http</name>
+    <protocol>http</protocol>
+  </port>
+
+  <module>
+    <type>jst.web</type>
+    <publishDir>${autoDeployDirectory}</publishDir>
+    <publisherReference>org.eclipse.jst.server.generic.antpublisher</publisherReference>
+  </module>
+
+    <project>
+      <classpathReference>appengine</classpathReference>
+    </project>
+    
+  <classpath id="appengine">
+    <!-- todo do we need to add every jar from the sdk here? -->
+    <archive path="${appEngineSdkDirectory}/lib/shared/servlet-api.jar"/>
+    <archive path="${appEngineSdkDirectory}/lib/shared/jsp-api.jar"/>
+    <archive path="${appEngineSdkDirectory}/lib/appengine-tools-api.jar"/>
+  </classpath>
+
+  <!-- should we use com.google.appengine.tools.KickStart instead? -->
+  <start>
+    <external>"${appEngineSdkDirectory}/bin/dev_appserver.sh" "--port=${port}" "${webappDirectory}"</external>
+   <!-- TODO we may not need this; check -->
+    <workingDirectory>${serverRootDirectory}</workingDirectory>
+    <debugPort>${debugPort}</debugPort>
+  </start>
+
+  <!-- TODO what do we use here? -->
+  <stop>
+    <external>"ls" "${serverRootDirectory}"</external>
+    <workingDirectory>${serverRootDirectory}</workingDirectory>
+  </stop>
+
+  <publisher id="org.eclipse.jst.server.generic.antpublisher">
+    <publisherdata>
+      <dataname>build.file</dataname>
+      <datavalue>gcp.xml</datavalue>
+    </publisherdata>
+    <publisherdata>
+      <dataname>target.publish.jst.web</dataname>
+      <datavalue>deploy.appengine</datavalue>
+    </publisherdata>       
+    <publisherdata>
+      <dataname>target.unpublish.jst.web</dataname>
+      <datavalue>undeploy.appengine</datavalue>
+    </publisherdata>   
+  </publisher>
+
+</tns:ServerRuntime>
