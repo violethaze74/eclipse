@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<?pde?>
+<target name="Google Cloud Platform for Eclipse Mars" sequenceNumber="1456419225">
+  <locations>
+    <location includeMode="planner" includeAllPlatforms="false" includeSource="true" 
+              includeConfigurePhase="false" type="InstallableUnit">
+      <unit id="org.eclipse.sdk.feature.group" version="4.5.1.v20150904-0345"/>
+      <unit id="org.eclipse.jdt.feature.group" version="3.11.1.v20150904-0015"/>
+      <unit id="org.eclipse.m2e.feature.feature.group" version="1.6.2.20150902-0002"/>
+      <unit id="org.eclipse.m2e.wtp.feature.feature.group" version="1.2.1.20150819-2220"/>
+      <unit id="org.eclipse.mylyn.commons.feature.group" version="3.17.0.v20150828-2041"/>
+      <unit id="org.eclipse.wst.web_ui.feature.feature.group" version="3.7.1.v201509022125"/>
+      <unit id="org.eclipse.jpt.jpa.feature.feature.group" version="3.4.2.v201505291546"/>
+      <unit id="org.eclipse.datatools.sdk.feature.feature.group" version="1.12.0.v201406061321-7PB21FEpPZQXdcX0z-_yMM0Hfz0w"/>
+      <unit id="org.eclipse.jetty.http" version="9.2.13.v20150730"/>
+      <unit id="org.eclipse.jetty.servlet" version="9.2.13.v20150730"/>
+      <unit id="org.eclipse.jetty.server" version="9.2.13.v20150730"/>
+      <unit id="org.eclipse.jetty.util" version="9.2.13.v20150730"/>
+      <repository location="http://download.eclipse.org/releases/mars/"/>
+    </location>
+    <location includeMode="planner" includeAllPlatforms="false" includeSource="true" 
+              includeConfigurePhase="false" type="InstallableUnit">
+      <unit id="com.android.ide.eclipse.adt.feature.feature.group" version="23.0.7.2120684"/>
+      <repository location="http://dl-ssl.google.com/android/eclipse/"/>
+    </location>
+  </locations>
+</target>
