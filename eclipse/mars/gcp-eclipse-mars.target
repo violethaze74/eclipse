@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <?pde?>
-<target name="Google Cloud Platform for Eclipse Mars" sequenceNumber="1456419225">
+<target name="Google Cloud Platform for Eclipse Mars" sequenceNumber="1">
   <locations>
     <location includeMode="planner" includeAllPlatforms="false" includeSource="true" 
               includeConfigurePhase="false" type="InstallableUnit">
@@ -17,11 +17,6 @@
       <unit id="org.eclipse.jetty.server" version="9.2.13.v20150730"/>
       <unit id="org.eclipse.jetty.util" version="9.2.13.v20150730"/>
       <repository location="http://download.eclipse.org/releases/mars/"/>
-    </location>
-    <location includeMode="planner" includeAllPlatforms="false" includeSource="true" 
-              includeConfigurePhase="false" type="InstallableUnit">
-      <unit id="com.android.ide.eclipse.adt.feature.feature.group" version="23.0.7.2120684"/>
-      <repository location="http://dl-ssl.google.com/android/eclipse/"/>
     </location>
   </locations>
 </target>
