@@ -38,6 +38,7 @@
         <artifactId>tycho-maven-plugin</artifactId>
         <extensions>true</extensions>
       </plugin>
+
       <plugin>
         <groupId>org.eclipse.tycho</groupId>
         <artifactId>tycho-compiler-plugin</artifactId>
@@ -46,6 +47,40 @@
           <showWarnings>true</showWarnings>
         </configuration>
       </plugin>
+
+      <plugin>
+        <groupId>org.eclipse.tycho</groupId>
+        <artifactId>target-platform-configuration</artifactId>
+        <configuration>
+          <filters>
+            <filter>
+              <type>java-package</type>
+              <id>org.eclipse.jetty.http</id>
+              <restrictTo>
+                <versionRange>[${jettyMinVersion},${jettyMaxVersion})</versionRange>
+              </restrictTo>
+            </filter>
+          </filters>
+          <environments>
+            <environment>
+              <os>linux</os> <ws>gtk</ws> <arch>x86</arch>
+            </environment>
+            <environment>
+              <os>linux</os> <ws>gtk</ws> <arch>x86_64</arch>
+            </environment>
+            <environment>
+              <os>win32</os> <ws>win32</ws> <arch>x86</arch>
+            </environment>
+            <environment>
+              <os>win32</os> <ws>win32</ws> <arch>x86_64</arch>
+            </environment>
+            <environment>
+              <os>macosx</os> <ws>cocoa</ws> <arch>x86_64</arch>
+            </environment>
+          </environments>
+        </configuration>
+      </plugin>
+
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
@@ -69,4 +104,44 @@
     </pluginManagement>
 
   </build>
+
+  <profiles>
+    <profile>
+      <id>build-eclipse-mars</id>
+      <activation>
+      <!-- Default target if no eclipse.target specified. -->
+        <property>
+          <name>!eclipse.target</name>
+          <!-- when no longer the default: <name>eclipse.target</name> <value>mars</value> -->
+        </property>
+      </activation>
+      <properties>
+         <jettyMinVersion>9.1</jettyMinVersion>
+          <jettyMaxVersion>9.3</jettyMaxVersion>
+      </properties>
+      <!-- build against a known target platform -->
+      <modules>
+        <module>eclipse/mars</module>
+      </modules>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.eclipse.tycho</groupId>
+            <artifactId>target-platform-configuration</artifactId>
+            <version>${tycho.version}</version>
+            <configuration>
+            <target>
+              <artifact>
+                <groupId>com.google.gcp.eclipse</groupId>
+                <artifactId>gcp-eclipse-mars</artifactId>
+                <version>94.0.0-SNAPSHOT</version>
+              </artifact>
+            </target>
+           </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+
 </project>
