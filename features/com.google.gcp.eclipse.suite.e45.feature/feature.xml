@@ -3,8 +3,7 @@
       id="com.google.gcp.eclipse.suite.e45.feature"
       label="Google Cloud Platform for Eclipse 4.5"
       version="94.0.0.qualifier"
-      provider-name="Google, Inc."
-      plugin="com.google.gcp.eclipse.suite">
+      provider-name="Google, Inc.">
 
    <description>
       Support development of Google Cloud Platform-based Projects in Eclipse 4.5
