@@ -77,7 +77,8 @@ to import the projects into Eclipse.
   1. After some time Eclipse will finish resolving and setting the target
      platform, you can click `OK`.
 
-  1. There should be no errors in the `Markers` or `Problems` views in Eclipse.
+  1. There should be no errors in the `Markers` or `Problems` views in Eclipse. However
+      you may see several low-priority warnings.
 
 1. Check the imported project:
 
