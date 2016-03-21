@@ -55,15 +55,15 @@ to import the projects into Eclipse.
 
   1. Select `Existing Maven Projects` from the list.
 
-  1. Click `Browse...` to select the root directory and select the directory that
+  1. Click `Browse...` and select the directory that
      contains the project.
 
   1. Under `Projects:` the `pom.xml` files representing modules should be
-     displayed, make sure that all of them are selected, and click `Finish`.
+     displayed. Make sure that all of them are selected, and click `Finish`.
 
-  1. Maven will prompt you to install several additional plugin connector plugins from
+  1. Maven may prompt you to install several additional plugin connector plugins from
   [Tycho](https://eclipse.org/tycho/) if they are not already installed. Click
-  `Finish` to install them. If Eclipse prompts you to install additional
+  `Finish` to install them. If Eclipse prompts you to install any other
   plugins, do so.
 
   1. Restart Eclipse when prompted.
