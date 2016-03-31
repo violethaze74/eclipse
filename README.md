@@ -33,10 +33,6 @@ to import the projects into Eclipse.
 
   1. Click `Finish`.
 
-  1. Set the checkbox selected for the JDK you just added to mark it as default.
-
-  1. Click `Apply`.
-
   1. Select `Java/Installed JREs/Execution Environments` page.
 
   1. Click on `JavaSE-1.7` in the list on the left under `Execution
