@@ -2,7 +2,10 @@ sudo: false
 language: java
 jdk:
   - openjdk7
+script:
+  - mvn verify
+  - mvn -Declipse.target=neon verify
 cache:  
-  directories:  
-   - $HOME/.m2  
+  directories:
+   - $HOME/.m2
 
