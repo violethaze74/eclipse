@@ -3,8 +3,8 @@ language: java
 jdk:
   - openjdk7
 script:
-  - mvn verify
-  - mvn -Declipse.target=neon verify
+  - mvn -Ptravis verify
+  - mvn -Ptravis -Declipse.target=neon verify
 cache:  
   directories:
    - $HOME/.m2
