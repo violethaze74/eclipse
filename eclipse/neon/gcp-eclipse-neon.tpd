@@ -42,5 +42,6 @@ location "http://download.eclipse.org/webtools/downloads/drops/R3.8.0/S-3.8.0M6-
 }
 
 location "http://download.eclipse.org/tools/orbit/downloads/drops/S20160308060251/repository/" {
-       org.hamcrest
+    com.google.gson
+    org.hamcrest
 }

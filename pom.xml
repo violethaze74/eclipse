@@ -50,7 +50,6 @@
       <plugin>
         <groupId>org.eclipse.tycho</groupId>
         <artifactId>tycho-compiler-plugin</artifactId>
-        <version>${tycho.version}</version>
         <configuration>
           <showWarnings>true</showWarnings>
         </configuration>
@@ -93,6 +92,7 @@
               <os>macosx</os> <ws>cocoa</ws> <arch>x86_64</arch>
             </environment>
           </environments>
+          <pomDependencies>consider</pomDependencies>
         </configuration>
       </plugin>
 
