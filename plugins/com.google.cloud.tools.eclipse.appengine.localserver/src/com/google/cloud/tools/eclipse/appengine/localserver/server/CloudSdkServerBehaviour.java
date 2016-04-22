@@ -183,7 +183,7 @@ public class CloudSdkServerBehaviour extends ServerBehaviourDelegate {
     try {
       new URL("http", server.getHostName(), server.getAdminPort(), "/quit").getContent();
       try {
-        // TODO: confirm appropriate delay time
+        //TODO: confirm appropriate delay time
         Thread.sleep(4000);
       } catch (InterruptedException e) {
         // ignore
