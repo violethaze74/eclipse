@@ -1,9 +1,11 @@
 package com.google.cloud.tools.eclipse.appengine.newproject;
 
+import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URI;
 
 import org.eclipse.core.commands.ExecutionException;
+import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IProjectDescription;
@@ -47,14 +49,12 @@ class CreateAppEngineStandardWtpProject implements IRunnableWithProgress {
         description, "Creating new App Engine Project");
     try {
       operation.execute(monitor, uiInfoAdapter);
-      IFolder folder = newProject.getFolder("src");
-      if (!folder.exists()) {
-        boolean force = true;
-        boolean local = true;
-        folder.create(force, local, monitor);
-      }
+      
+      CodeTemplates.materialize(newProject, config, monitor, "helloworld");
+      
     } catch (ExecutionException | CoreException ex) {
       throw new InvocationTargetException(ex);
     }
   }
+
 }
