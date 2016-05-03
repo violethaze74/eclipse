@@ -1,6 +1,15 @@
 package com.google.cloud.tools.eclipse.appengine.newproject;
 
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.regex.PatternSyntaxException;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
@@ -24,18 +33,9 @@ public class CodeTemplates {
   // todo: config details are going to vary based on type of template; need a more generic
   // solution such as key-value map or a different design
   // todo what if project isn't empty?
-  // todo is there anyway to make this less Eclipse dependent? e.g. use java.io
-  // instead of IProject/IFile/IFolder
   public static void materialize(IProject project, AppEngineStandardProjectConfig config,
-      IProgressMonitor monitor, String name) throws CoreException {
-    
-    String packageName = config.getPackageName();
-    createCode(monitor, project, packageName);
-  }
-
-  // todo replace with something that simply copies from a file system while replacing tokens
-  private static void createCode(IProgressMonitor monitor, IProject project, String packageName) 
-      throws CoreException {
+      IProgressMonitor monitor) throws CoreException {
+    // todo replace with something that simply copies from a file system while replacing tokens
     
     SubMonitor subMonitor = SubMonitor.convert(monitor, 100);
     subMonitor.setTaskName("Generating code");
@@ -50,22 +50,32 @@ public class CodeTemplates {
     IFolder test = createChildFolder("test", src, subMonitor);
     IFolder testJava = createChildFolder("java", test, subMonitor);
 
+    Map<String, String> values = new HashMap<>();
+    String packageName = config.getPackageName();
     if (packageName != null && !packageName.isEmpty()) {
       String[] packages = packageName.split("\\.");
-      IFolder parent = java;
       for (int i = 0; i < packages.length; i++) {
-        parent = createChildFolder(packages[i], parent, subMonitor);
+        java = createChildFolder(packages[i], java, subMonitor);
       }
-      
-      // now set up the test directory
-      parent = testJava;
+      values.put("Package", "package " + packageName + ";");
+    } else {
+      values.put("Package", "");
+    }
+    createChildFile("HelloAppEngine.java", java, subMonitor, values);
+    
+    // now set up the test directory
+    if (packageName != null && !packageName.isEmpty()) {
+      String[] packages = packageName.split("\\.");
+      IFolder parent = testJava;
       for (int i = 0; i < packages.length; i++) {
         parent = createChildFolder(packages[i], parent, subMonitor);
       }
     }
     
     IFolder webapp = createChildFolder("webapp", main, subMonitor);
-    createChildFile("appengine-web.xml", webapp, subMonitor);
+    Map<String, String> projectId = new HashMap<>();
+    projectId.put("ProjectID", config.getAppEngineProjectId());
+    createChildFile("appengine-web.xml", webapp, subMonitor, projectId);
     createChildFile("web.xml", webapp, subMonitor);
     IFolder webinf = createChildFolder("WEB-INF", webapp, subMonitor);
     createChildFile("index.xhtml", webinf, subMonitor);
@@ -103,9 +113,51 @@ public class CodeTemplates {
       throw new CoreException(status);
     }
     
-    // todo template processing    
     if (!child.exists()) {
       child.create(in, force, monitor);
+    }
+    return child;
+  }
+  
+  // visible for testing
+  static IFile createChildFile(String name, IFolder parent, SubMonitor monitor,
+      Map<String, String> values) throws CoreException {
+    
+    monitor.subTask("Creating file " + name);
+    monitor.newChild(20);
+    
+    boolean force = true;
+    IFile child = parent.getFile(name);
+    InputStream in = CodeTemplates.class.getResourceAsStream("templates/" + name + ".ftl");
+    if (in == null) {
+      IStatus status = new Status(Status.ERROR, "todo plugin ID", 2, 
+          "Could not load template for " + name, null);
+      throw new CoreException(status);
+    }
+    
+    if (!child.exists()) {
+      // todo total hack; lots of problems with edge conditions and performance;
+      // replace this with FreeMarker or better
+      try {
+        Reader reader = new BufferedReader(new InputStreamReader(in, "UTF-8"));
+        StringBuilder builder = new StringBuilder();
+        for (int c = reader.read(); c != -1; c = reader.read()) {
+          builder.append((char) c);
+        }
+        String template = builder.toString();
+        
+        for (Entry<String, String> entry : values.entrySet()) {
+          String token = "\\$\\{" + entry.getKey() + "\\}";
+          template = template.replaceAll(token, entry.getValue());
+        }
+        
+        byte[] data = template.getBytes("UTF-8"); 
+        child.create(new ByteArrayInputStream(data), force, monitor);
+      } catch (IOException | PatternSyntaxException ex) {
+        IStatus status = new Status(Status.ERROR, "todo plugin ID", 3, 
+            "Could not process template for " + name, null);
+        throw new CoreException(status);
+      }
     }
     return child;
   }
