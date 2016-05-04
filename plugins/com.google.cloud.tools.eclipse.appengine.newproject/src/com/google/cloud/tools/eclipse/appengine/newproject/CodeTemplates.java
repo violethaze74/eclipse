@@ -73,12 +73,12 @@ public class CodeTemplates {
     }
     
     IFolder webapp = createChildFolder("webapp", main, subMonitor);
+    IFolder webinf = createChildFolder("WEB-INF", webapp, subMonitor);
     Map<String, String> projectId = new HashMap<>();
     projectId.put("ProjectID", config.getAppEngineProjectId());
-    createChildFile("appengine-web.xml", webapp, subMonitor, projectId);
-    createChildFile("web.xml", webapp, subMonitor);
-    IFolder webinf = createChildFolder("WEB-INF", webapp, subMonitor);
-    createChildFile("index.xhtml", webinf, subMonitor);
+    createChildFile("appengine-web.xml", webinf, subMonitor, projectId);
+    createChildFile("web.xml", webinf, subMonitor);
+    createChildFile("index.html", webapp, subMonitor);
   }
 
   // visible for testing
