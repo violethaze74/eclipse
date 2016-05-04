@@ -86,6 +86,8 @@ public class CodeTemplatesTest {
     // This is the namespace URI that currently (Q2 2016) works in App Engine.
     Assert.assertEquals("http://java.sun.com/xml/ns/javaee", root.getNamespaceURI());
     Assert.assertEquals("2.5", root.getAttribute("version"));
+    Element servletClass = (Element) root.getElementsByTagName("servlet-class").item(0);
+    Assert.assertEquals("HelloAppEngine", servletClass.getTextContent());
     
     IFile htmlFile = webapp.getFile("index.html");
     Element html = buildDocument(htmlFile).getDocumentElement();
