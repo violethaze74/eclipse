@@ -7,13 +7,21 @@ import org.eclipse.core.resources.IWorkspace;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IAdaptable;
+import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.SubMonitor;
+import org.eclipse.jst.common.project.facet.core.JavaFacet;
+import org.eclipse.jst.common.project.facet.core.JavaFacetInstallConfig;
 import org.eclipse.ui.actions.WorkspaceModifyOperation;
 import org.eclipse.ui.ide.undo.CreateProjectOperation;
+import org.eclipse.wst.common.project.facet.core.IFacetedProject;
+import org.eclipse.wst.common.project.facet.core.ProjectFacetsManager;
 
 import java.lang.reflect.InvocationTargetException;
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
 * Utility to make a new Eclipse project with the App Engine Standard facets in the workspace.  
@@ -35,6 +43,7 @@ class CreateAppEngineStandardWtpProject extends WorkspaceModifyOperation {
   public void execute(IProgressMonitor monitor) throws InvocationTargetException, CoreException {
     SubMonitor progress = SubMonitor.convert(monitor, 100);
     
+    // todo just use getproject().getLocationUri()
     URI location = config.getEclipseProjectLocationUri();
     
     IWorkspace workspace = ResourcesPlugin.getWorkspace();
@@ -47,9 +56,17 @@ class CreateAppEngineStandardWtpProject extends WorkspaceModifyOperation {
     CreateProjectOperation operation = new CreateProjectOperation(
         description, "Creating new App Engine Project");
     try {
-      operation.execute(progress.newChild(50), uiInfoAdapter);
-      
-      CodeTemplates.materialize(newProject, config, progress.newChild(50));
+      operation.execute(progress.newChild(20), uiInfoAdapter);
+      IFacetedProject facetedProject = ProjectFacetsManager.create(
+          newProject, true, progress.newChild(40));
+      JavaFacetInstallConfig javaConfig = new JavaFacetInstallConfig();
+      List<IPath> sourcePaths = new ArrayList<>();
+      sourcePaths.add(new Path("src/main/java"));
+      sourcePaths.add(new Path("src/test/java"));
+      javaConfig.setSourceFolders(sourcePaths);
+      facetedProject.installProjectFacet(JavaFacet.VERSION_1_7, javaConfig, monitor);
+
+      CodeTemplates.materialize(newProject, config, progress.newChild(40));
       
     } catch (ExecutionException ex) {
       throw new InvocationTargetException(ex);
