@@ -13,12 +13,16 @@ import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.SubMonitor;
 import org.eclipse.jst.common.project.facet.core.JavaFacet;
 import org.eclipse.jst.common.project.facet.core.JavaFacetInstallConfig;
+import org.eclipse.jst.j2ee.project.facet.IJ2EEFacetInstallDataModelProperties;
+import org.eclipse.jst.j2ee.project.facet.IJ2EEModuleFacetInstallDataModelProperties;
+import org.eclipse.jst.j2ee.web.project.facet.IWebFacetInstallDataModelProperties;
+import org.eclipse.jst.j2ee.web.project.facet.WebFacetInstallDataModelProvider;
 import org.eclipse.jst.j2ee.web.project.facet.WebFacetUtils;
 import org.eclipse.ui.actions.WorkspaceModifyOperation;
 import org.eclipse.ui.ide.undo.CreateProjectOperation;
+import org.eclipse.wst.common.frameworks.datamodel.DataModelFactory;
+import org.eclipse.wst.common.frameworks.datamodel.IDataModel;
 import org.eclipse.wst.common.project.facet.core.IFacetedProject;
-import org.eclipse.wst.common.project.facet.core.IProjectFacet;
-import org.eclipse.wst.common.project.facet.core.IProjectFacetVersion;
 import org.eclipse.wst.common.project.facet.core.ProjectFacetsManager;
 
 import java.lang.reflect.InvocationTargetException;
@@ -67,12 +71,15 @@ class CreateAppEngineStandardWtpProject extends WorkspaceModifyOperation {
       sourcePaths.add(new Path("src/main/java"));
       sourcePaths.add(new Path("src/test/java"));
       javaConfig.setSourceFolders(sourcePaths);
-      
       facetedProject.installProjectFacet(JavaFacet.VERSION_1_7, javaConfig, monitor);
-      facetedProject.installProjectFacet(WebFacetUtils.WEB_25, null, monitor);
-
+      
       CodeTemplates.materialize(newProject, config, progress.newChild(40));
       
+      IDataModel webModel = DataModelFactory.createDataModel(new WebFacetInstallDataModelProvider());
+      webModel.setBooleanProperty(IJ2EEModuleFacetInstallDataModelProperties.ADD_TO_EAR, false);
+      webModel.setBooleanProperty(IJ2EEFacetInstallDataModelProperties.GENERATE_DD, false);
+      webModel.setBooleanProperty(IWebFacetInstallDataModelProperties.INSTALL_WEB_LIBRARY, false);
+      facetedProject.installProjectFacet(WebFacetUtils.WEB_25, webModel, monitor);
     } catch (ExecutionException ex) {
       throw new InvocationTargetException(ex);
     } finally {
