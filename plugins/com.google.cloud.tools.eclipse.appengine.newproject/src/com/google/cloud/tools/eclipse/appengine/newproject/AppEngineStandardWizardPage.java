@@ -20,6 +20,8 @@ class AppEngineStandardWizardPage extends WizardNewProjectCreationPage implement
   
   AppEngineStandardWizardPage() {
     super("basicNewProjectPage");
+    this.setTitle("App Engine Standard Project");
+    this.setDescription("Create a new App Engine Standard Project in the workspace.");
   }
 
   // todo is there a way to call this for a test?

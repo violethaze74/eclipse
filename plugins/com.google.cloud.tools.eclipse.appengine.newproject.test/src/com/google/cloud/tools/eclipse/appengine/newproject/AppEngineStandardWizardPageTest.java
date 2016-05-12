@@ -21,5 +21,16 @@ public class AppEngineStandardWizardPageTest {
   public void testGetPreviousPage() {
     Assert.assertNull(page.getPreviousPage());
   }
+  
+  @Test
+  public void testTitle() {
+    Assert.assertEquals("App Engine Standard Project", page.getTitle());
+  }
+  
+  @Test
+  public void testDescription() {
+    Assert.assertEquals("Create a new App Engine Standard Project in the workspace.", 
+        page.getDescription());
+  }
 
 }
