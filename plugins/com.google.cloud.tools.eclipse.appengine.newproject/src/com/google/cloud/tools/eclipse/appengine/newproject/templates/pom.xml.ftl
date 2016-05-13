@@ -13,8 +13,8 @@
   <properties>
     <app.id>${ProjectID}</app.id>
     <app.version>1</app.version>
-    <appengine.version>1.9.36</appengine.version>
-    <gcloud.plugin.version>2.0.9.74.v20150814</gcloud.plugin.version>
+    <appengine.version>1.9.37</appengine.version>
+    <gcloud.plugin.version>2.0.9.106.v20160420</gcloud.plugin.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.showDeprecation>true</maven.compiler.showDeprecation>
   </properties>
@@ -64,7 +64,7 @@
         <plugin>
             <groupId>org.codehaus.mojo</groupId>
             <artifactId>versions-maven-plugin</artifactId>
-            <version>2.1</version>
+            <version>2.2</version>
             <executions>
                 <execution>
                     <phase>compile</phase>
@@ -87,7 +87,7 @@
         <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-war-plugin</artifactId>
-            <version>2.4</version>
+            <version>2.6</version>
             <configuration>
                 <archiveClasses>true</archiveClasses>
                 <webResources>
