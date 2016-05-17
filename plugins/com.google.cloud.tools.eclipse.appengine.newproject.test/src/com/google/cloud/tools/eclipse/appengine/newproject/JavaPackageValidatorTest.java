@@ -14,6 +14,11 @@ public class JavaPackageValidatorTest {
   public void testEndsWithPeriod() {
     Assert.assertFalse(JavaPackageValidator.validate("com.google.eclipse."));
   }
+  
+  @Test
+  public void testStartsWithPeriod() {
+    Assert.assertFalse(JavaPackageValidator.validate(".com.google.eclipse."));
+  }
 
   @Test
   public void testOneWord() {
@@ -22,10 +27,26 @@ public class JavaPackageValidatorTest {
   }
   
   @Test
-  public void testContainsSpace() {
+  public void testContainsSpaceAroundPeriod() {
     Assert.assertFalse(JavaPackageValidator.validate("com. google.eclipse"));
   }
+  
+  @Test
+  public void testContainsInternalSpace() {
+    Assert.assertFalse(JavaPackageValidator.validate("com.goo gle.eclipse"));
+  }
+  
+  @Test
+  public void testDoublePeriod() {
+    Assert.assertFalse(JavaPackageValidator.validate("com..google"));
+  }
 
+
+  @Test
+  public void testJavaKeyword() {
+    Assert.assertFalse(JavaPackageValidator.validate("com.new"));
+  }
+  
   @Test
   public void testEmptyString() {
     Assert.assertTrue(JavaPackageValidator.validate(""));
