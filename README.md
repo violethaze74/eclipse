@@ -123,4 +123,5 @@ the default boot classpath to _jdkHome_`/lib/*`, _jdkHome_`/lib/ext/*`,
 and _jdkHome_`/lib/endorsed/*`.  For many JDKs, including Oracle's JDK
 and the OpenJDK, those directories are actually found in the `jre/`
 directory.  Compilation errors such as `java.lang.String` not found
+and `java.lang.Exception` not found
 indicate a misconfigured _jdkHome_.
