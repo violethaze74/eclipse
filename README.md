@@ -1,4 +1,7 @@
-This is an Eclipse plugin for building and deploying Google Cloud Platform applications.
+[![unstable](http://badges.github.io/stability-badges/dist/unstable.svg)](http://github.com/badges/stability-badges)
+
+
+This project provides an Eclipse plugin for building, debugging, and deploying Google Cloud Platform applications.
 
 # Development
 
