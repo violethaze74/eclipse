@@ -1,5 +1,6 @@
 package com.google.cloud.tools.eclipse.appengine.newproject;
 
+import org.eclipse.core.runtime.IStatus;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -12,12 +13,16 @@ public class JavaPackageValidatorTest {
   
   @Test
   public void testEndsWithPeriod() {
-    Assert.assertFalse(JavaPackageValidator.validate("com.google.eclipse.").isOK());
+    IStatus status = JavaPackageValidator.validate("com.google.eclipse.");
+    Assert.assertFalse(status.isOK());
+    Assert.assertEquals("com.google.eclipse. ends with a period.", status.getMessage());
   }
   
   @Test
   public void testStartsWithPeriod() {
-    Assert.assertFalse(JavaPackageValidator.validate(".com.google.eclipse.").isOK());
+    IStatus status = JavaPackageValidator.validate(".com.google.eclipse");
+    Assert.assertFalse(status.isOK());
+    Assert.assertEquals("A package name cannot start or end with a dot", status.getMessage());
   }
 
   @Test

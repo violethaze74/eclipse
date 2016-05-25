@@ -16,7 +16,6 @@ public class JavaPackageValidator {
    * Check if a string is a legal Java package name.
    */
   public static IStatus validate(String packageName) {
-    
     if (packageName == null) {
       return new Status(IStatus.ERROR, PLUGIN_ID, 45, "null package name", null);
     } else if (packageName.isEmpty()) { // default package is allowed
@@ -24,11 +23,11 @@ public class JavaPackageValidator {
     } else if (packageName.endsWith(".")) {
       // todo or allow this and strip the period
       return new Status(IStatus.ERROR, PLUGIN_ID, 46, 
-          MessageFormat.format("%s ends with a period.", packageName), null);
+          MessageFormat.format("{0} ends with a period.", packageName), null);
     } else if (containsWhitespace(packageName)) {
       // very weird condition because validatePackageName allows internal white space
       return new Status(IStatus.ERROR, PLUGIN_ID, 46, 
-          MessageFormat.format("%s contains whitespace.", packageName), null);
+          MessageFormat.format("{0} contains whitespace.", packageName), null);
     } else {
       return JavaConventions.validatePackageName(
           packageName, JavaCore.VERSION_1_4, JavaCore.VERSION_1_4);

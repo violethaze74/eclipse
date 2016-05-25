@@ -3,7 +3,6 @@ package com.google.cloud.tools.eclipse.appengine.newproject.maven;
 import com.google.cloud.tools.eclipse.appengine.newproject.AppEngineProjectIdValidator;
 import com.google.cloud.tools.eclipse.appengine.newproject.JavaPackageValidator;
 
-import org.eclipse.core.resources.IWorkspace;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IStatus;
@@ -151,7 +150,7 @@ public class MavenAppEngineStandardWizardPage extends WizardPage implements IWiz
 
     // Java package name
     Label packageNameLabel = new Label(container, SWT.NONE);
-    packageNameLabel.setText("Java package:"); //$NON-NLS-1$
+    packageNameLabel.setText("Java package:");
     javaPackageField = new Text(container, SWT.BORDER);
     GridData javaPackagePosition = new GridData(GridData.FILL_HORIZONTAL);
     javaPackagePosition.horizontalSpan = 2;
@@ -213,7 +212,7 @@ public class MavenAppEngineStandardWizardPage extends WizardPage implements IWiz
   }
 
   /**
-   * Check that we won't overwrite an existing location. Expects a valid Maven Artifact Id.
+   * Check that we won't overwrite an existing location. Expects a valid Maven Artifact ID.
    */
   private boolean validateGeneratedProjectLocation() {
     String artifactId = getArtifactId();
@@ -229,18 +228,18 @@ public class MavenAppEngineStandardWizardPage extends WizardPage implements IWiz
   private boolean validateMavenSettings() {
     String groupId = getGroupId();
     if (groupId.isEmpty()) {
-      setMessage("Please provide Maven Group Id.", INFORMATION);
+      setMessage("Please provide Maven Group ID.", INFORMATION);
       return false;
     } else if (!MavenCoordinatesValidator.validateGroupId(groupId)) {
-      setErrorMessage(MessageFormat.format("Illegal Maven Group Id: {0}.", groupId));
+      setErrorMessage(MessageFormat.format("Illegal Maven Group ID: {0}.", groupId));
       return false;
     }
     String artifactId = getArtifactId();
     if (artifactId.isEmpty()) {
-      setMessage("Please provide Maven Artifact Id.", INFORMATION);
+      setMessage("Please provide Maven Artifact ID.", INFORMATION);
       return false;
     } else if (!MavenCoordinatesValidator.validateArtifactId(artifactId)) {
-      setErrorMessage("Illegal Maven Artifact Id: " + artifactId);
+      setErrorMessage("Illegal Maven Artifact ID: " + artifactId);
       return false;
     }
     String version = getVersion();
@@ -258,7 +257,9 @@ public class MavenAppEngineStandardWizardPage extends WizardPage implements IWiz
     String packageName = getPackageName();
     IStatus status = JavaPackageValidator.validate(packageName);
     if (!status.isOK()) {
-      setErrorMessage(MessageFormat.format("Illegal Java package name: {0}.", status.getMessage()));
+      String details = status.getMessage() == null ? packageName : status.getMessage();
+      String message = MessageFormat.format("Illegal Java package name: {0}", details);
+      setErrorMessage(message);
       return false;
     }
 
@@ -268,10 +269,6 @@ public class MavenAppEngineStandardWizardPage extends WizardPage implements IWiz
       return false;
     }
     return true;
-  }
-
-  private IWorkspace getWorkspace() {
-    return ResourcesPlugin.getWorkspace();
   }
   
   /** Return the Maven group for the project */

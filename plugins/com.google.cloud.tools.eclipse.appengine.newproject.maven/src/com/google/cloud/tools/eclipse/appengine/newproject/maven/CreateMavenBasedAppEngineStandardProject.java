@@ -37,16 +37,14 @@ public class CreateMavenBasedAppEngineStandardProject extends WorkspaceModifyOpe
   private String version;
   private IPath location;
 
-
-
   @Override
   protected void execute(IProgressMonitor monitor)
       throws CoreException, InvocationTargetException, InterruptedException {
     SubMonitor progress = SubMonitor.convert(monitor);
     monitor.beginTask("Creating Maven AppEngine archetype", 100);
 
-    // todo: verify whether project id is be necessary during creation. The
-    // archetype seems to require it so we wse the artifact if unspecified.
+    // todo: verify whether project ID is necessary during creation. The
+    // archetype seems to require it so we use the artifact if unspecified.
     String appId = appEngineProjectId;
     if (appId == null || appId.trim().isEmpty()) {
       appId = artifactId;
