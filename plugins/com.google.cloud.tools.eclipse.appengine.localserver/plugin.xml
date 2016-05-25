@@ -257,29 +257,6 @@
       </propertyTester>
    </extension>
    <extension
-         point="org.eclipse.ui.handlers">
-      <handler
-            class="com.google.cloud.tools.eclipse.appengine.localserver.deploy.CloudSdkDeployProjectHandler"
-            commandId="com.google.cloud.tools.eclipse.deployCommand">
-         <enabledWhen>
-            <with
-                  variable="selection">
-               <and>
-                  <count
-                        value="1">
-                  </count>
-                  <iterate
-                        operator="and">
-                     <test
-                           property="com.google.cloud.tools.eclipse.isCloudSdkProject">
-                     </test>
-                  </iterate>
-               </and>
-            </with>
-         </enabledWhen>
-      </handler>
-   </extension>
-   <extension
          point="org.eclipse.ui.menus">
       <menuContribution
             allPopups="false"
