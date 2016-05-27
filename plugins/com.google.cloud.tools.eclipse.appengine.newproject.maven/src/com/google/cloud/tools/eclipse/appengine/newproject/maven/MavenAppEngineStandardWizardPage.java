@@ -2,6 +2,7 @@ package com.google.cloud.tools.eclipse.appengine.newproject.maven;
 
 import com.google.cloud.tools.eclipse.appengine.newproject.AppEngineProjectIdValidator;
 import com.google.cloud.tools.eclipse.appengine.newproject.JavaPackageValidator;
+import com.google.cloud.tools.eclipse.appengine.ui.AppEngineImages;
 
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.IPath;
@@ -9,7 +10,6 @@ import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.jface.layout.GridDataFactory;
 import org.eclipse.jface.layout.GridLayoutFactory;
-import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.wizard.IWizardPage;
 import org.eclipse.jface.wizard.WizardPage;
 import org.eclipse.swt.SWT;
@@ -24,7 +24,6 @@ import org.eclipse.swt.widgets.DirectoryDialog;
 import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Text;
-import org.eclipse.ui.plugin.AbstractUIPlugin;
 
 import java.text.MessageFormat;
 
@@ -49,11 +48,7 @@ public class MavenAppEngineStandardWizardPage extends WizardPage implements IWiz
     super("basicNewProjectPage"); //$NON-NLS-1$
     setTitle("Maven-based App Engine Standard Project");
     setDescription("Create new Maven-based App Engine Standard Project");
-    
-    // todo: pull this from commons
-    ImageDescriptor descriptor = AbstractUIPlugin.imageDescriptorFromPlugin(
-        "com.google.cloud.tools.eclipse.appengine.localserver", "icons/gcp-32x32.png"); //$NON-NLS-1$ //$NON-NLS-2$
-    this.setImageDescriptor(descriptor);
+    setImageDescriptor(AppEngineImages.googleCloudPlatform(32));
 
     setPageComplete(false);
   }
