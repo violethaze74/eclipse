@@ -28,6 +28,47 @@ environment.
 1. Clone the project to a local directory using `git clone
    https://github.com/GoogleCloudPlatform/gcloud-eclipse-tools.git`.
 
+
+## Configuring Maven/Tycho Builds
+
+The plugin is built using Maven/Tycho and targeted Java 7.
+
+We use Tycho's [`useJDK=BREE`](https://eclipse.org/tycho/sitedocs/tycho-compiler-plugin/compile-mojo.html)
+setting to ensure that Java 8 features do not creep into the code.
+This setting causes bundles to be compiled with a JDK that matches
+the bundle's `Bundle-RequiredExecutionEnvironment`.  This setting
+requires configuring [Maven's toolchains](https://maven.apache.org/guides/mini/guide-using-toolchains.html)
+to point to appropriate JRE installations.  Tycho also requires
+that a toolchain provide an `id` equivalent to the specified Execution
+Environment identifier.  For example, a `~/.m2/toolchains.xml` to
+configure Maven for a Java 7 toolchain on a Mac might be:
+
+```
+<?xml version="1.0"?>
+<toolchains>
+  <toolchain>
+    <type>jdk</type>
+    <provides>
+      <id>JavaSE-1.7</id> <!-- the Execution Environment -->
+      <version>1.7</version>
+      <vendor>oracle</vendor>
+    </provides>
+    <configuration>
+      <jdkHome>/Library/Java/JavaVirtualMachines/jdk1.7.0_75.jdk/Contents/Home/jre</jdkHome>
+    </configuration>
+  </toolchain>
+</toolchains>
+```
+
+Note that _jdkHome_ above specifies the `jre/` directory: Tycho sets
+the default boot classpath to _jdkHome_`/lib/*`, _jdkHome_`/lib/ext/*`,
+and _jdkHome_`/lib/endorsed/*`.  For many JDKs, including Oracle's JDK
+and the OpenJDK, those directories are actually found in the `jre/`
+directory.  Compilation errors such as `java.lang.String` not found
+and `java.lang.Exception` not found
+indicate a misconfigured _jdkHome_.
+
+
 ## Import into Eclipse
 
 ### Assemble the IDE Target Platform
@@ -117,45 +158,6 @@ $ mvn package
   1. Select `Run As/1 gcloud-eclipse-tools` from the context menu.
 
   1. A new instance of Eclipse should be launched with the plugin installed.
-
-##Configuring Maven/Tycho Builds
-
-The plugin is built using Maven/Tycho and targeted Java 7.
-
-We use Tycho's [`useJDK=BREE`](https://eclipse.org/tycho/sitedocs/tycho-compiler-plugin/compile-mojo.html)
-setting to ensure that Java 8 features do not creep into the code.
-This setting causes bundles to be compiled with a JDK that matches
-the bundle's `Bundle-RequiredExecutionEnvironment`.  This setting
-requires configuring [Maven's toolchains](https://maven.apache.org/guides/mini/guide-using-toolchains.html)
-to point to appropriate JRE installations.  Tycho also requires
-that a toolchain provide an `id` equivalent to the specified Execution
-Environment identifier.  For example, a `~/.m2/toolchains.xml` to
-configure Maven for a Java 7 toolchain on a Mac might be:
-
-```
-<?xml version="1.0"?>
-<toolchains>
-  <toolchain>
-    <type>jdk</type>
-    <provides>
-      <id>JavaSE-1.7</id> <!-- the Execution Environment -->
-      <version>1.7</version>
-      <vendor>oracle</vendor>
-    </provides>
-    <configuration>
-      <jdkHome>/Library/Java/JavaVirtualMachines/jdk1.7.0_75.jdk/Contents/Home/jre</jdkHome>
-    </configuration>
-  </toolchain>
-</toolchains>
-```
-
-Note that _jdkHome_ above specifies the `jre/` directory: Tycho sets
-the default boot classpath to _jdkHome_`/lib/*`, _jdkHome_`/lib/ext/*`,
-and _jdkHome_`/lib/endorsed/*`.  For many JDKs, including Oracle's JDK
-and the OpenJDK, those directories are actually found in the `jre/`
-directory.  Compilation errors such as `java.lang.String` not found
-and `java.lang.Exception` not found
-indicate a misconfigured _jdkHome_.
 
 # Updating Target Platforms
 
