@@ -38,6 +38,10 @@ import java.util.List;
  * A {@link ServerDelegate} for Google Cloud SDK.
  */
 @SuppressWarnings("restriction") // For FacetUtil
+// TODO for https://github.com/GoogleCloudPlatform/gcloud-eclipse-tools/issues/242
+// replace this class with one that relies on app-tools-lib-for-java.
+// It will need most of the same operations, and probably require some
+// additions and modifications to app-tools-lib-for-java.
 public class CloudSdkServer extends ServerDelegate {
 
   private static final String SERVLET_MODULE_FACET = "jst.web";
@@ -59,7 +63,7 @@ public class CloudSdkServer extends ServerDelegate {
    * {@code server} or a new {@link CloudSdkServer} instance if a
    * {@link CloudSdkServer} instance cannot be found for {@code server}.
    *
-   * @param server the generic sever
+   * @param server the cloud SDK server
    * @return a new {@link CloudSdkServer} instance or the one associated with
    *         {@code server}
    */
