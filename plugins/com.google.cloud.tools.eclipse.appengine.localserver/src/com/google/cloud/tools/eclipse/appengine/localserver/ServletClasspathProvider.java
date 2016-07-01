@@ -8,9 +8,11 @@ import org.eclipse.jst.server.core.RuntimeClasspathProviderDelegate;
 import org.eclipse.wst.server.core.IRuntime;
 
 import com.google.cloud.tools.appengine.cloudsdk.PathResolver;
+import com.google.cloud.tools.eclipse.util.MavenUtils;
 
 /**
- * Supply Java standard classes, specifically servlet-api.jar and jsp-api.jar.
+ * Supply Java standard classes, specifically servlet-api.jar and jsp-api.jar,
+ * to non-Maven projects.
  */
 public class ServletClasspathProvider extends RuntimeClasspathProviderDelegate {
 
@@ -19,7 +21,11 @@ public class ServletClasspathProvider extends RuntimeClasspathProviderDelegate {
 
   @Override
   public IClasspathEntry[] resolveClasspathContainer(IProject project, IRuntime runtime) {
-    return resolveClasspathContainer(runtime);
+    if (project != null && MavenUtils.hasMavenNature(project)) { // Maven handles its own classpath
+      return new IClasspathEntry[0];
+    } else {
+      return resolveClasspathContainer(runtime);
+    } 
   }
 
   @Override
