@@ -45,7 +45,8 @@ public final class AppEngineSdkClasspathContainer implements IClasspathContainer
         IClasspathEntry appEngineToolsEntry =
             JavaCore.newLibraryEntry(new Path(appEngineToolsApiJar),
                                      null /* sourceAttachmentPath */,
-                                     null /* sourceAttachmentRootPath */);
+                                     null /* sourceAttachmentRootPath */,
+                                     true /* isExported */);
         return new IClasspathEntry[]{ appEngineToolsEntry };
       }
     }
