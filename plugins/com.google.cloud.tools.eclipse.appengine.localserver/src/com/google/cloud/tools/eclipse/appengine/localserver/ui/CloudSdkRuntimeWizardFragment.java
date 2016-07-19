@@ -14,6 +14,7 @@
  *******************************************************************************/
 package com.google.cloud.tools.eclipse.appengine.localserver.ui;
 
+import com.google.cloud.tools.appengine.cloudsdk.CloudSdk;
 import com.google.cloud.tools.eclipse.appengine.localserver.runtime.CloudSdkRuntime;
 import com.google.cloud.tools.eclipse.sdk.CloudSdkProvider;
 
@@ -43,8 +44,6 @@ import org.eclipse.wst.server.core.IRuntimeWorkingCopy;
 import org.eclipse.wst.server.core.TaskModel;
 import org.eclipse.wst.server.ui.wizard.IWizardHandle;
 import org.eclipse.wst.server.ui.wizard.WizardFragment;
-
-import java.io.File;
 
 /**
  * {@link WizardFragment} for configuring Google Cloud SDK Runtime.
@@ -149,18 +148,23 @@ public final class CloudSdkRuntimeWizardFragment extends WizardFragment {
       }
     });
 
-    File location = new CloudSdkProvider().getCloudSdkLocation();
-    if (location != null) {
-      dirTextBox.setText(location.toString());
+    CloudSdk sdk = new CloudSdkProvider().getCloudSdk();
+    if (sdk != null) {
+      java.nio.file.Path location = sdk.getJavaAppEngineSdkPath();
+      if (location != null) {
+        dirTextBox.setText(location.toString());
+      }
     }
   }
 
   private CloudSdkRuntime getRuntimeDelegate() {
-    IRuntimeWorkingCopy workingCopy = (IRuntimeWorkingCopy) getTaskModel().getObject(TaskModel.TASK_RUNTIME);
+    IRuntimeWorkingCopy workingCopy =
+        (IRuntimeWorkingCopy) getTaskModel().getObject(TaskModel.TASK_RUNTIME);
     if (workingCopy == null) {
       return null;
     }
-    return (CloudSdkRuntime) workingCopy.loadAdapter(CloudSdkRuntime.class, new NullProgressMonitor());
+    return (CloudSdkRuntime) workingCopy.loadAdapter(
+        CloudSdkRuntime.class, new NullProgressMonitor());
   }
 
   private String getRuntimeTitle() {
