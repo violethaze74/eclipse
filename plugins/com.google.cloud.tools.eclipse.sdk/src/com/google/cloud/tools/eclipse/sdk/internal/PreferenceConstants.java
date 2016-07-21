@@ -33,11 +33,11 @@ public final class PreferenceConstants {
    */
   public static final String CLOUDSDK_PATH = "cloudSdkPath";
 
-  public static IPreferenceStore getPreferenceStore() {
+  static IPreferenceStore getPreferenceStore() {
     return new ScopedPreferenceStore(InstanceScope.INSTANCE, BUNDLEID);
   }
 
-  public static IEclipsePreferences getPreferenceNode() {
+  static IEclipsePreferences getPreferenceNode() {
     return InstanceScope.INSTANCE.getNode(BUNDLEID);
   }
 }
