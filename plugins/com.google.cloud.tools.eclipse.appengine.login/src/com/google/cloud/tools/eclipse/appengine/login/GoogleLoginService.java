@@ -55,22 +55,38 @@ public class GoogleLoginService {
    * For this reason, if {@code null} is returned, the caller should cancel the current
    * operation and display a general message that login is required but was cancelled or failed.
    *
+   * Must be called from a UI context.
+   *
    * @param shellProvider provides a shell for the login screen if login is necessary
    * @throws IOException can be thrown by the underlying Login API request (e.g., network
    *     error from the transport layer while sending/receiving a HTTP request/response.)
    */
   public Credential getActiveCredential(IShellProvider shellProvider) throws IOException {
+    Credential credential = getCachedActiveCredential();
+
+    if (credential == null) {
+      credential = logIn(shellProvider);
+
+      MApplication application = PlatformUI.getWorkbench().getService(MApplication.class);
+      Collections.synchronizedMap(
+          application.getTransientData()).put(STASH_OAUTH_CRED_KEY, credential);
+    }
+    return credential;
+  }
+
+  /**
+   * Returns the credential of an active user (among multiple logged-in users). Unlike {@link
+   * #getActiveCredential}, this version does not involve login process or make API calls.
+   * Returns {@code null} if no credential has been cached.
+   *
+   * Safe to call from non-UI contexts.
+   */
+  public Credential getCachedActiveCredential() {
     MApplication application = PlatformUI.getWorkbench().getService(MApplication.class);
 
     Map<String, Object> synchronizedMap =
         Collections.synchronizedMap(application.getTransientData());
-    Credential credential = (Credential) synchronizedMap.get(STASH_OAUTH_CRED_KEY);
-
-    if (credential == null) {
-      credential = logIn(shellProvider);
-      synchronizedMap.put(STASH_OAUTH_CRED_KEY, credential);
-    }
-    return credential;
+    return (Credential) synchronizedMap.get(STASH_OAUTH_CRED_KEY);
   }
 
   private Credential logIn(IShellProvider shellProvider) throws IOException {
@@ -127,7 +143,7 @@ public class GoogleLoginService {
   }
 
   /**
-   * Factored out to from {@link #getJsonCredential} to enable unit testing.
+   * Factored out from {@link #getJsonCredential} to enable unit testing.
    * ({@link Credential#getRefreshToken} is {@code final}, so Mockito can't mock it.)
    */
   @VisibleForTesting
