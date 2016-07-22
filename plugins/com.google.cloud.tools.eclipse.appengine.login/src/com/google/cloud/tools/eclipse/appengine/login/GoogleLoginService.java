@@ -12,33 +12,132 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  *******************************************************************************/
+
 package com.google.cloud.tools.eclipse.appengine.login;
 
+import com.google.api.client.auth.oauth2.Credential;
+import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeTokenRequest;
+import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
+import com.google.api.client.googleapis.auth.oauth2.GoogleTokenResponse;
+import com.google.api.client.googleapis.util.Utils;
+import com.google.api.client.repackaged.com.google.common.base.Preconditions;
+import com.google.cloud.tools.eclipse.appengine.login.ui.GoogleLoginBrowser;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.gson.Gson;
+
+import org.eclipse.e4.ui.model.application.MApplication;
+import org.eclipse.jface.window.IShellProvider;
+import org.eclipse.ui.PlatformUI;
+
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
-
-import com.google.api.client.auth.oauth2.Credential;
+import java.util.Map;
 
 /**
  * Provides service related to login, e.g., account management, getting a credential of a
  * currently active user, etc.
- *
- * Thread-safe.
  */
 public class GoogleLoginService {
 
-  // TODO(chanseok): this will be needed later.
-  public static final List<String> OAUTH_SCOPES = Collections.unmodifiableList(Arrays.asList(
-      "https://www.googleapis.com/auth/userinfo#email"
+  private static final String STASH_OAUTH_CRED_KEY = "OAUTH_CRED";
+  private static final List<String> OAUTH_SCOPES = Collections.unmodifiableList(Arrays.asList(
+      "email", //$NON-NLS-1$
+      "https://www.googleapis.com/auth/cloud-platform" //$NON-NLS-1$
   ));
 
   /**
-   * Returns the credential of the active user. If there is no active user, returns {@code null}.
+   * Returns the credential of an active user (among multiple logged-in users). A login screen
+   * may be presented, e.g., if no user is logged in or login is required due to an expired
+   * credential. This method returns {@code null} if a user cancels the login process.
+   * For this reason, if {@code null} is returned, the caller should cancel the current
+   * operation and display a general message that login is required but was cancelled or failed.
+   *
+   * @param shellProvider provides a shell for the login screen if login is necessary
+   * @throws IOException can be thrown by the underlying Login API request (e.g., network
+   *     error from the transport layer while sending/receiving a HTTP request/response.)
    */
-  // Should probably be synchronized properly.
-  // TODO(chanseok): consider returning a String JSON (i.e., hide Credential)
-  public Credential getActiveCredential() {
-    return null;
+  public Credential getActiveCredential(IShellProvider shellProvider) throws IOException {
+    MApplication application = PlatformUI.getWorkbench().getService(MApplication.class);
+
+    Map<String, Object> synchronizedMap =
+        Collections.synchronizedMap(application.getTransientData());
+    Credential credential = (Credential) synchronizedMap.get(STASH_OAUTH_CRED_KEY);
+
+    if (credential == null) {
+      credential = logIn(shellProvider);
+      synchronizedMap.put(STASH_OAUTH_CRED_KEY, credential);
+    }
+    return credential;
+  }
+
+  private Credential logIn(IShellProvider shellProvider) throws IOException {
+    GoogleLoginBrowser loginBrowser = new GoogleLoginBrowser(
+        shellProvider.getShell(), Constants.getOAuthClientId(), OAUTH_SCOPES);
+    if (loginBrowser.open() != GoogleLoginBrowser.OK) {
+      return null;
+    }
+
+    GoogleAuthorizationCodeTokenRequest authRequest = new GoogleAuthorizationCodeTokenRequest(
+        Utils.getDefaultTransport(), Utils.getDefaultJsonFactory(),
+        Constants.getOAuthClientId(), Constants.getOAuthClientSecret(),
+        loginBrowser.getAuthorizationCode(),
+        GoogleLoginBrowser.REDIRECT_URI);
+
+    return createCredential(authRequest.execute());
+  }
+
+  private Credential createCredential(GoogleTokenResponse tokenResponse) {
+    return createCredentialHelper(tokenResponse.getAccessToken(),
+                                  tokenResponse.getRefreshToken());
+  }
+
+  /**
+   * Factored out from {@link #createCredential} to enable unit testing.
+   * ({@link GoogleTokenResponse#getRefreshToken} and {@link GoogleTokenResponse#getRefreshToken}
+   * are {@code final}, so Mockito can't mock them.)
+   */
+  @VisibleForTesting
+  Credential createCredentialHelper(String accessToken, String refreshToken) {
+    GoogleCredential credential = new GoogleCredential.Builder()
+        .setTransport(Utils.getDefaultTransport())
+        .setJsonFactory(Utils.getDefaultJsonFactory())
+        .setClientSecrets(Constants.getOAuthClientId(), Constants.getOAuthClientSecret())
+        .build();
+    credential.setAccessToken(accessToken);
+    credential.setRefreshToken(refreshToken);
+    return credential;
+  }
+
+  private static final String CLIENT_ID_LABEL = "client_id";
+  private static final String CLIENT_SECRET_LABEL = "client_secret";
+  private static final String REFRESH_TOKEN_LABEL = "refresh_token";
+  private static final String GCLOUD_USER_TYPE_LABEL = "type";
+  private static final String GCLOUD_USER_TYPE = "authorized_user";
+
+  /**
+   * Helper method to convert a credential to the corresponding JSON string.
+   */
+  public static String getJsonCredential(Credential credential) {
+    Preconditions.checkNotNull(credential);
+
+    return getJsonCredentialHelper(credential.getRefreshToken());
+  }
+
+  /**
+   * Factored out to from {@link #getJsonCredential} to enable unit testing.
+   * ({@link Credential#getRefreshToken} is {@code final}, so Mockito can't mock it.)
+   */
+  @VisibleForTesting
+  static String getJsonCredentialHelper(String refreshToken) {
+    Map<String, String> credentialMap = new HashMap<>();
+    credentialMap.put(CLIENT_ID_LABEL, Constants.getOAuthClientId());
+    credentialMap.put(CLIENT_SECRET_LABEL, Constants.getOAuthClientSecret());
+    credentialMap.put(REFRESH_TOKEN_LABEL, refreshToken);
+    credentialMap.put(GCLOUD_USER_TYPE_LABEL, GCLOUD_USER_TYPE);
+
+    return new Gson().toJson(credentialMap);
   }
 }
