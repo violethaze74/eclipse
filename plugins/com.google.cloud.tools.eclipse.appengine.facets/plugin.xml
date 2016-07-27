@@ -41,8 +41,8 @@
 
   <extension point="org.eclipse.jdt.core.classpathContainerInitializer">
     <classpathContainerInitializer
-        id="AppEngineSDK"
-        class="com.google.cloud.tools.eclipse.appengine.facets.AppEngineSdkClasspathInitializer"/>
+      id="AppEngineSDK"
+      class="com.google.cloud.tools.eclipse.appengine.facets.AppEngineSdkClasspathInitializer"/>
   </extension>
 
 </plugin>
