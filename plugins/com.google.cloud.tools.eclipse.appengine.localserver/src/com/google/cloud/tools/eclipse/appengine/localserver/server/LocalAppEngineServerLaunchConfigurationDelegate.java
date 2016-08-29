@@ -83,13 +83,6 @@ public class LocalAppEngineServerLaunchConfigurationDelegate
     if (modules == null || modules.length == 0) {
       return;
     }
-    // App Engine dev server can only debug one module at a time
-    // as we cannot configure the IVMConnector to continue listening
-    if (mode.equals(ILaunchManager.DEBUG_MODE) && modules.length > 1) {
-      String message = "The App Engine development server supports only 1 module when running in debug mode";
-      Status status = new Status(IStatus.ERROR, Activator.PLUGIN_ID, message);
-      throw new CoreException(status);
-    }
 
     LocalAppEngineServerBehaviour serverBehaviour =
         (LocalAppEngineServerBehaviour) server.loadAdapter(LocalAppEngineServerBehaviour.class, null);
@@ -136,8 +129,15 @@ public class LocalAppEngineServerLaunchConfigurationDelegate
 
   private void setupDebugTarget(ILaunch launch, ILaunchConfiguration configuration, int port,
       IProgressMonitor monitor) throws CoreException {
-    IVMConnector connector =
-        JavaRuntime.getVMConnector(IJavaLaunchConfigurationConstants.ID_SOCKET_LISTEN_VM_CONNECTOR);
+    // Attempt to retrieve our socketListenerMultipleConnector first: our fragment versions are
+    // setup to ensure that it will not be installed on 4.7 (Oxygen) or beyond
+    IVMConnector connector = JavaRuntime.getVMConnector(
+        "com.google.cloud.tools.eclipse.jdt.launching.socketListenerMultipleConnector");
+    if (connector == null) {
+      // The 4.7 listen connector supports an acceptCount
+      connector = JavaRuntime
+          .getVMConnector(IJavaLaunchConfigurationConstants.ID_SOCKET_LISTEN_VM_CONNECTOR);
+    }
     if (connector == null) {
       abort("Cannot find Socket Listening connector", null, 0);
       return; // keep JDT null analysis happy
@@ -150,6 +150,7 @@ public class LocalAppEngineServerLaunchConfigurationDelegate
     connectionParameters.put("hostname", DEBUGGER_HOST);
     connectionParameters.put("port", Integer.toString(port));
     connectionParameters.put("timeout", Integer.toString(timeout));
+    connectionParameters.put("acceptCount", "0");
     connector.connect(connectionParameters, monitor, launch);
   }
 
