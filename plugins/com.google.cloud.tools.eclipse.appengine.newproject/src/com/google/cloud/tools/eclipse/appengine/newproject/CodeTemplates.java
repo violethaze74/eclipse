@@ -23,6 +23,7 @@ import org.eclipse.core.resources.IContainer;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IProject;
+import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.Path;
@@ -119,6 +120,7 @@ public class CodeTemplates {
       child.create(new ByteArrayInputStream(new byte[0]), true /* force */, monitor);
       AppEngineTemplateUtility.createFileContent(
           child.getLocation().toString(), template, values);
+      child.refreshLocal(IResource.DEPTH_ZERO, monitor);
     }
     return child;
   }
