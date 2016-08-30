@@ -16,7 +16,6 @@
 
 package com.google.cloud.tools.eclipse.integration.appengine;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -63,7 +62,7 @@ public class NewNativeAppEngineStandardProjectTest extends AbstractProjectTests 
         "src/main/webapp/WEB-INF/web.xml", "src/main/webapp/index.html",};
     createAndCheck("appWithPackageAndProjectId", null, "app.engine.test", "my-project-id",
         projectFiles);
-    assertEquals("my-project-id",
+    assertNull(
         SwtBotAppEngineActions.getAppEngineProjectId(project.getFile("src/main/webapp/WEB-INF/appengine-web.xml")));
   }
 
