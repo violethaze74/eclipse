@@ -39,13 +39,13 @@ import com.google.api.client.auth.oauth2.Credential;
 import com.google.cloud.tools.appengine.api.deploy.DefaultDeployConfiguration;
 import com.google.cloud.tools.eclipse.appengine.deploy.AppEngineProjectDeployer;
 import com.google.cloud.tools.eclipse.appengine.deploy.CleanupOldDeploysJob;
-import com.google.cloud.tools.eclipse.appengine.deploy.Messages;
 import com.google.cloud.tools.eclipse.appengine.deploy.standard.ExplodedWarPublisher;
 import com.google.cloud.tools.eclipse.appengine.deploy.standard.StandardDeployJob;
 import com.google.cloud.tools.eclipse.appengine.deploy.standard.StandardDeployJobConfig;
 import com.google.cloud.tools.eclipse.appengine.deploy.standard.StandardDeployPreferences;
 import com.google.cloud.tools.eclipse.appengine.deploy.standard.StandardDeployPreferencesConverter;
 import com.google.cloud.tools.eclipse.appengine.deploy.standard.StandardProjectStaging;
+import com.google.cloud.tools.eclipse.appengine.deploy.ui.Messages;
 import com.google.cloud.tools.eclipse.appengine.login.IGoogleLoginService;
 import com.google.cloud.tools.eclipse.sdk.ui.MessageConsoleWriterOutputLineListener;
 import com.google.cloud.tools.eclipse.ui.util.MessageConsoleUtilities;
@@ -156,7 +156,24 @@ public class StandardDeployCommandHandler extends AbstractHandler {
                     Messages.getString("dialog.prompt.projectId.title"),
                     Messages.getString("dialog.prompt.projectId.message"),
                     initialValue,
-                    new ProjectIdValidator());
+                    new ProjectIdValidator() {
+                      @Override
+                      // The input dialog does not provide decoration for the error message,
+                      // make errors more recognizable with modified validation messages
+                      // FIXME https://github.com/GoogleCloudPlatform/cloud-tools-for-eclipse/issues/635
+                      public String isValid(String newText) {
+                        String error = super.isValid(newText);
+                        if (error != null) {
+                          if (error.isEmpty()) {
+                            return Messages.getString("error.projectId.invalid");
+                          } else {
+                            return Messages.getString("error.projectId.prefix", error);
+                          }
+                        } else {
+                          return null;
+                        }
+                      }
+    });
     int result = dialog.open();
     if (result == Window.OK) {
       return dialog.getValue();
