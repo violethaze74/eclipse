@@ -1,11 +1,16 @@
 package com.google.cloud.tools.eclipse.util;
 
 import com.google.cloud.tools.eclipse.util.status.StatusUtil;
+import com.google.common.base.Objects;
 
+import org.apache.maven.artifact.Artifact;
+import org.apache.maven.model.Dependency;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
+import org.eclipse.m2e.core.MavenPlugin;
 import org.osgi.framework.FrameworkUtil;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
@@ -15,6 +20,8 @@ import org.xml.sax.SAXException;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.text.MessageFormat;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -44,6 +51,62 @@ public class MavenUtils {
     return false;
   }
 
+  /**
+   * Returns true if the group IDs and artifact IDs of <code>dependency1</code> and
+   * <@code>dependency2</@code> are equal. Returns false otherwise.
+   */
+  public static boolean areDependenciesEqual(Dependency dependency1, Dependency dependency2) {
+    if ((dependency1 == null) || (dependency2 == null)) {
+      return false;
+    }
+
+    if (!Objects.equal(dependency1.getGroupId(), dependency2.getGroupId())||
+        !Objects.equal(dependency1.getArtifactId(), dependency2.getArtifactId())) {
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * Returns true if a dependency with the same group ID and artifact ID as <code>targetDependency</code>
+   * exists in <code>dependencies</code>. Returns false otherwise.
+   */
+  public static boolean doesListContainDependency(List<Dependency> dependencies, Dependency targetDependency) {
+    if((dependencies == null) || (targetDependency == null)) {
+      return false;
+    }
+
+    for (Dependency dependency : dependencies) {
+      if (areDependenciesEqual(dependency, targetDependency)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Returns the latest version of the maven artifact specified via <code>groupId</code> and
+   * <code>artifactId</code> or the <code>defaultVersion</code> if an error occurs while fetching
+   * the latest version.
+   */
+  public static String resolveLatestReleasedArtifact(IProgressMonitor monitor, String groupId,
+      String artifactId, String type, String defaultVersion) {
+    try {
+      Artifact artifact = MavenPlugin.getMaven().resolve(groupId, artifactId, "LATEST", type,
+          null /* classifier */, null /* artifactRepositories */, monitor);
+      return artifact.getVersion();
+    } catch (CoreException ex) {
+      logger.log(Level.WARNING,
+          MessageFormat.format("Unable to resolve artifact {0}:{1}", groupId, artifactId), ex);
+      return defaultVersion;
+    }
+  }
+
+  public String getProperty(InputStream pomXml, String propertyName) throws CoreException {
+    return getTopLevelValue(parse(pomXml), "properties", propertyName); //$NON-NLS-1$ //$NON-NLS-2$
+  }
 
   private Document parse(InputStream pomXml) throws CoreException {
     try {
@@ -53,10 +116,6 @@ public class MavenUtils {
     } catch (IOException | SAXException | ParserConfigurationException exception) {
       throw new CoreException(StatusUtil.error(getClass(), "Cannot parse pom.xml", exception));
     }
-  }
-
-  public String getProperty(InputStream pomXml, String propertyName) throws CoreException {
-    return getTopLevelValue(parse(pomXml), "properties", propertyName); //$NON-NLS-1$ //$NON-NLS-2$
   }
 
   private String getTopLevelValue(Document doc, String parentTagName, String childTagName)

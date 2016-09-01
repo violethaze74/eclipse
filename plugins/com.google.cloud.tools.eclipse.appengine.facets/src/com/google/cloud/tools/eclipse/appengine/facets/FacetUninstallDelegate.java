@@ -1,51 +1,50 @@
-/*******************************************************************************
- * Copyright 2016 Google Inc. All Rights Reserved.
- *
- * All rights reserved. This program and the accompanying materials are made
- * available under the terms of the Eclipse Public License v1.0 which
- * accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations under
- * the License.
- *******************************************************************************/
-
 package com.google.cloud.tools.eclipse.appengine.facets;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.Map.Entry;
+
+import org.apache.maven.model.Dependency;
+import org.apache.maven.model.Model;
+import org.apache.maven.model.io.DefaultModelWriter;
 import org.eclipse.core.resources.IProject;
+import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
-import org.eclipse.core.runtime.SubMonitor;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.jdt.core.IClasspathEntry;
 import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.core.JavaCore;
+import org.eclipse.m2e.core.MavenPlugin;
+import org.eclipse.m2e.core.project.IMavenProjectFacade;
 import org.eclipse.wst.common.project.facet.core.IDelegate;
 import org.eclipse.wst.common.project.facet.core.IFacetedProject;
 import org.eclipse.wst.common.project.facet.core.IProjectFacetVersion;
 import org.eclipse.wst.common.project.facet.core.ProjectFacetsManager;
 import org.eclipse.wst.common.project.facet.core.runtime.IRuntime;
-import com.google.cloud.tools.eclipse.util.MavenUtils;
 
-import java.util.Set;
+import com.google.cloud.tools.eclipse.util.MavenUtils;
+import com.google.cloud.tools.eclipse.util.status.StatusUtil;
+import com.google.common.base.Preconditions;
 
 public class FacetUninstallDelegate implements IDelegate {
 
   @Override
   public void execute(IProject project, IProjectFacetVersion version, Object config,
       IProgressMonitor monitor) throws CoreException {
-    // TODO: what is the complete scenario for maven project?
-    // https://github.com/GoogleCloudPlatform/gcloud-eclipse-tools/issues/504
-    if (!MavenUtils.hasMavenNature(project)) { // Maven handles classpath in maven projects.
-      SubMonitor subMonitor = SubMonitor.convert(monitor, 100);
-      removeAppEngineJarsFromClasspath(project, subMonitor.newChild(50));
-      uninstallAppEngineRuntime(project, subMonitor.newChild(50));
+    if (MavenUtils.hasMavenNature(project)) {
+      removeAppEngineJarsFromMavenProject(project, monitor);
+    } else {
+      removeAppEngineJarsFromClasspath(project, monitor);
     }
+    uninstallAppEngineRuntime(project, monitor);
   }
 
   private void removeAppEngineJarsFromClasspath(IProject project, IProgressMonitor monitor) throws CoreException {
@@ -94,5 +93,54 @@ public class FacetUninstallDelegate implements IDelegate {
     };
     uninstallJob.schedule();
 
+  }
+
+  private void removeAppEngineJarsFromMavenProject(IProject project, IProgressMonitor monitor) throws CoreException {
+    IMavenProjectFacade facade = MavenPlugin.getMavenProjectRegistry().getProject(project);
+    Model pom = facade.getMavenProject(monitor).getModel();
+
+    List<Dependency> currentDependencies = pom.getDependencies();
+    List<Dependency> updatedDependencies = updateMavenProjectDependencies(currentDependencies);
+    pom.setDependencies(updatedDependencies);
+
+    Properties properties = pom.getProperties();
+    updatePomProperties(properties, monitor);
+
+    DefaultModelWriter writer = new DefaultModelWriter();
+    File pomFile = pom.getPomFile();
+    try {
+      writer.write(pomFile, null /* options */, pom);
+    } catch (IOException e) {
+      throw new CoreException(StatusUtil.error(this, e.getMessage()));
+    }
+    project.getFile(pomFile.getName()).refreshLocal(IResource.DEPTH_ZERO, monitor);
+  }
+
+  //visible for testing
+  public static List<Dependency> updateMavenProjectDependencies(List<Dependency> initialDependencies) {
+    List<Dependency> finalDependencies = new ArrayList<Dependency>();
+    if ((initialDependencies == null) || (initialDependencies.isEmpty())) {
+      return finalDependencies;
+    }
+
+    List<Dependency> allAppEngineDependencies = MavenAppEngineFacetUtil.getAppEngineDependencies();
+    for (Dependency dependency : initialDependencies) {
+      if(!MavenUtils.doesListContainDependency(allAppEngineDependencies, dependency)) {
+        finalDependencies.add(dependency);
+      }
+    }
+
+    return finalDependencies;
+  }
+
+  //visible for testing
+  public static void updatePomProperties(Properties projectProperties, IProgressMonitor monitor) {
+    Preconditions.checkNotNull(projectProperties, "project properties is null");
+    Map<String, String> allProperties = MavenAppEngineFacetUtil.getAppEnginePomProperties(monitor);
+    for (Entry<String, String> property : allProperties.entrySet()) {
+      if(projectProperties.containsKey(property.getKey())) {
+        projectProperties.remove(property.getKey());
+      }
+    }
   }
 }

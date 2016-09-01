@@ -17,6 +17,7 @@
 package com.google.cloud.tools.eclipse.appengine.newproject;
 
 import java.io.ByteArrayInputStream;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;

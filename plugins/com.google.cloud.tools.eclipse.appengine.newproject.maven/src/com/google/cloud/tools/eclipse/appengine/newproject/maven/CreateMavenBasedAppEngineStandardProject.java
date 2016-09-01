@@ -2,15 +2,9 @@
 package com.google.cloud.tools.eclipse.appengine.newproject.maven;
 
 import java.lang.reflect.InvocationTargetException;
-import java.text.MessageFormat;
 import java.util.List;
 import java.util.Properties;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 import org.apache.maven.archetype.catalog.Archetype;
-import org.apache.maven.artifact.Artifact;
-import org.apache.maven.artifact.repository.ArtifactRepository;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
@@ -25,13 +19,10 @@ import org.eclipse.ui.actions.WorkspaceModifyOperation;
 import org.eclipse.wst.common.project.facet.core.IFacetedProject;
 import org.eclipse.wst.common.project.facet.core.ProjectFacetsManager;
 
+import com.google.cloud.tools.eclipse.util.MavenUtils;
 import com.google.cloud.tools.eclipse.appengine.facets.AppEngineStandardFacet;
 
 public class CreateMavenBasedAppEngineStandardProject extends WorkspaceModifyOperation {
-  
-  private static final Logger logger =
-      Logger.getLogger(CreateMavenBasedAppEngineStandardProject.class.getName());
-
   IProjectConfigurationManager projectConfigurationManager =
       MavenPlugin.getProjectConfigurationManager();
 
@@ -55,10 +46,10 @@ public class CreateMavenBasedAppEngineStandardProject extends WorkspaceModifyOpe
     if (appId == null || appId.trim().isEmpty()) {
       appId = artifactId;
     }
-    String appengineArtifactVersion = resolveLatestReleasedArtifact(progress.newChild(20),
-        "com.google.appengine", "appengine-api-1.0-sdk", "jar", "1.9.42");
-    String gcloudArtifactVersion = resolveLatestReleasedArtifact(progress.newChild(20),
-        "com.google.appengine", "gcloud-maven-plugin", "maven-plugin", "2.0.9.106.v20160420");
+    String appengineArtifactVersion = MavenUtils.resolveLatestReleasedArtifact(progress.newChild(20),
+        "com.google.appengine", "appengine-api-1.0-sdk", "jar", AppEngineStandardFacet.DEFAULT_APPENGINE_SDK_VERSION);
+    String gcloudArtifactVersion = MavenUtils.resolveLatestReleasedArtifact(progress.newChild(20),
+        "com.google.appengine", "gcloud-maven-plugin", "maven-plugin", AppEngineStandardFacet.DEFAULT_GCLOUD_PLUGIN_VERSION);
 
     Properties properties = new Properties();
     properties.put("appengine-version", appengineArtifactVersion);
@@ -88,24 +79,6 @@ public class CreateMavenBasedAppEngineStandardProject extends WorkspaceModifyOpe
      */
     Job job = new MappingDiscoveryJob(archetypeProjects);
     job.schedule();
-  }
-
-  private String resolveLatestReleasedArtifact(SubMonitor progress, String groupId,
-      String artifactId, String type, String defaultVersion) {
-    try {
-      progress.beginTask(MessageFormat.format("Resolving latest version of {0}", artifactId), 10);
-      String classifier = null;
-      List<ArtifactRepository> artifactRepositories = null;
-      Artifact artifact = MavenPlugin.getMaven().resolve(groupId, artifactId, "LATEST", type,
-          classifier, artifactRepositories, progress.newChild(10));
-      return artifact.getVersion();
-    } catch (CoreException ex) {
-      logger.log(Level.WARNING,
-          MessageFormat.format("Unable to resolve artifact {0}:{1}", groupId, artifactId), ex);
-      return defaultVersion;
-    } finally {
-      progress.done();
-    }
   }
 
   /** Set the App Engine project identifier; may be {@code null} */
