@@ -145,10 +145,6 @@ public class LocalAppEngineServerBehaviour extends ServerBehaviourDelegate {
     DefaultRunConfiguration devServerRunConfiguration = new DefaultRunConfiguration();
     devServerRunConfiguration.setAppYamls(runnables);
 
-    // todo: make this a configurable option, but default to
-    // 1 instance to simplify debugging
-    devServerRunConfiguration.setMaxModuleInstances(1);
-
     // FIXME: workaround bug when running on a Java8 JVM
     // https://github.com/GoogleCloudPlatform/gcloud-eclipse-tools/issues/181
     devServerRunConfiguration.setJvmFlags(Arrays.asList("-Dappengine.user.timezone=UTC"));
@@ -178,6 +174,10 @@ public class LocalAppEngineServerBehaviour extends ServerBehaviourDelegate {
     // Create run configuration
     DefaultRunConfiguration devServerRunConfiguration = new DefaultRunConfiguration();
     devServerRunConfiguration.setAppYamls(runnables);
+
+    // todo: make this a configurable option, but default to
+    // 1 instance to simplify debugging
+    devServerRunConfiguration.setMaxModuleInstances(1);
 
     List<String> jvmFlags = new ArrayList<String>();
     // FIXME: workaround bug when running on a Java8 JVM
