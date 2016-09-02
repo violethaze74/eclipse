@@ -180,8 +180,6 @@ public class LocalAppEngineServerLaunchConfigurationDelegate
    */
   private class OpenBrowserListener implements IServerListener {
     private String pageLocation;
-    // todo[issue #556]: must wait a fixed time in case the server is subsequently stopped
-    private int waitTime = 1500;// ms
 
     public OpenBrowserListener(String pageLocation) {
       this.pageLocation = pageLocation;
@@ -219,7 +217,7 @@ public class LocalAppEngineServerLaunchConfigurationDelegate
           return Status.OK_STATUS;
         }
       };
-      openJob.schedule(waitTime);
+      openJob.schedule();
       server.removeServerListener(this);
     }
   }

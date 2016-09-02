@@ -7,8 +7,12 @@ import com.google.cloud.tools.appengine.api.devserver.DefaultStopConfiguration;
 import com.google.cloud.tools.appengine.cloudsdk.CloudSdk;
 import com.google.cloud.tools.appengine.cloudsdk.CloudSdkAppEngineDevServer;
 import com.google.cloud.tools.appengine.cloudsdk.process.ProcessExitListener;
+import com.google.cloud.tools.appengine.cloudsdk.process.ProcessOutputLineListener;
 import com.google.cloud.tools.appengine.cloudsdk.process.ProcessStartListener;
 import com.google.cloud.tools.eclipse.appengine.localserver.Activator;
+import com.google.cloud.tools.eclipse.appengine.localserver.server.LocalAppEngineServerBehaviour.DevAppServerOutputListener;
+import com.google.cloud.tools.eclipse.appengine.localserver.server.LocalAppEngineServerBehaviour.LocalAppEngineExitListener;
+import com.google.cloud.tools.eclipse.appengine.localserver.server.LocalAppEngineServerBehaviour.LocalAppEngineStartListener;
 import com.google.cloud.tools.eclipse.sdk.ui.MessageConsoleWriterOutputLineListener;
 
 import org.eclipse.core.runtime.IPath;
@@ -41,9 +45,12 @@ public class LocalAppEngineServerBehaviour extends ServerBehaviourDelegate {
   private AppEngineDevServer devServer;
   private Process devProcess;
 
+  private DevAppServerOutputListener serverOutputListener;
+
   public LocalAppEngineServerBehaviour () {
     localAppEngineStartListener = new LocalAppEngineStartListener();
     localAppEngineExitListener = new LocalAppEngineExitListener();
+    serverOutputListener = new DevAppServerOutputListener();
   }
 
   @Override
@@ -198,9 +205,11 @@ public class LocalAppEngineServerBehaviour extends ServerBehaviourDelegate {
     MessageConsoleWriterOutputLineListener outputListener =
         new MessageConsoleWriterOutputLineListener(stream);
 
+    // dev_appserver output goes to stderr
     CloudSdk cloudSdk = new CloudSdk.Builder()
         .addStdOutLineListener(outputListener)
         .addStdErrLineListener(outputListener)
+        .addStdErrLineListener(serverOutputListener)
         .startListener(localAppEngineStartListener)
         .exitListener(localAppEngineExitListener)
         .async(true)
@@ -223,14 +232,34 @@ public class LocalAppEngineServerBehaviour extends ServerBehaviourDelegate {
   }
 
   /**
-   * A {@link ProcessStarteListener} for the App Engine server.
+   * A {@link ProcessStartListener} for the App Engine server.
    */
   public class LocalAppEngineStartListener implements ProcessStartListener {
     @Override
     public void onStart(Process process) {
       logger.log(Level.FINE, "New Process: " + process);
       devProcess = process;
-      setServerState(IServer.STATE_STARTED);
+    }
+  }
+
+  /**
+   * An output listener that monitors for well-known key dev_appserver output and affects server
+   * state changes.
+   */
+  public class DevAppServerOutputListener implements ProcessOutputLineListener {
+
+    @Override
+    public void onOutputLine(String line) {
+      if (line.endsWith("Dev App Server is now running")) {
+        // App Engine Standard (v1)
+        setServerState(IServer.STATE_STARTED);
+      } else if (line.endsWith(".Server:main: Started")) {
+        // App Engine Flexible (v2)
+        setServerState(IServer.STATE_STARTED);
+      } else if (line.equals("Traceback (most recent call last):")) {
+        // An error occurred
+        setServerState(IServer.STATE_STOPPED);
+      }
     }
   }
 }
