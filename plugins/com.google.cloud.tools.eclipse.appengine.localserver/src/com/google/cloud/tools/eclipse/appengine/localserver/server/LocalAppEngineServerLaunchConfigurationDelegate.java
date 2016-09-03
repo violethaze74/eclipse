@@ -20,6 +20,7 @@ import com.google.cloud.tools.eclipse.appengine.localserver.PreferencesInitializ
 import com.google.cloud.tools.eclipse.appengine.localserver.ui.LocalAppEngineConsole;
 import com.google.cloud.tools.eclipse.usagetracker.AnalyticsEvents;
 import com.google.cloud.tools.eclipse.usagetracker.AnalyticsPingManager;
+import com.google.common.base.Preconditions;
 
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
@@ -32,6 +33,7 @@ import org.eclipse.debug.core.DebugException;
 import org.eclipse.debug.core.ILaunch;
 import org.eclipse.debug.core.ILaunchConfiguration;
 import org.eclipse.debug.core.ILaunchManager;
+import org.eclipse.debug.core.ILaunchesListener2;
 import org.eclipse.jdt.launching.AbstractJavaLaunchConfigurationDelegate;
 import org.eclipse.jdt.launching.IJavaLaunchConfigurationConstants;
 import org.eclipse.jdt.launching.IVMConnector;
@@ -97,27 +99,8 @@ public class LocalAppEngineServerLaunchConfigurationDelegate
     console.clearConsole();
     console.activate();
 
-    if (shouldOpenStartPage()) {
-      String pageLocation = determinePageLocation(server, configuration);
-      if (pageLocation != null) {
-        // odd: addServerListener(..., IServer.SERVER_STARTED) doesn't work
-        server.addServerListener(new OpenBrowserListener(pageLocation));
-      }
-    }
-    // If the server is stopped, then terminate any ancillary processes
-    server.addServerListener(new IServerListener() {
-      @Override
-      public void serverChanged(ServerEvent event) {
-        if (event.getState() == IServer.STATE_STOPPED) {
-          event.getServer().removeServerListener(this);
-          try {
-            launch.terminate();
-          } catch (DebugException ex) {
-            logger.log(Level.WARNING, "Unable to terminate launch", ex);
-          }
-        }
-      }
-    });
+    new ServerLaunchMonitor(configuration, launch, server).engage();
+
     if (ILaunchManager.DEBUG_MODE.equals(mode)) {
       int debugPort = getDebugPort();
       setupDebugTarget(launch, configuration, debugPort, monitor);
@@ -125,6 +108,46 @@ public class LocalAppEngineServerLaunchConfigurationDelegate
     } else {
       serverBehaviour.startDevServer(runnables, console.newMessageStream());
     }
+  }
+
+  /**
+   * Listen for the server to enter STARTED and open a web browser on the server's main page
+   */
+  protected void openBrowserPage(final ILaunchConfiguration configuration, final IServer server) {
+    if (!shouldOpenStartPage()) {
+      return;
+    }
+    final String pageLocation = determinePageLocation(server, configuration);
+    if (pageLocation == null) {
+      return;
+    }
+    final IWorkbench workbench = PlatformUI.getWorkbench();
+
+    Job openJob = new UIJob(workbench.getDisplay(), "Launching start page") {
+
+      @Override
+      public IStatus runInUIThread(IProgressMonitor monitor) {
+        if (server.getServerState() != IServer.STATE_STARTED) {
+          return Status.CANCEL_STATUS;
+        }
+        try {
+          URL url = new URL(pageLocation);
+          IWorkbenchBrowserSupport browserSupport = workbench.getBrowserSupport();
+          int style = IWorkbenchBrowserSupport.LOCATION_BAR
+              | IWorkbenchBrowserSupport.NAVIGATION_BAR | IWorkbenchBrowserSupport.STATUS;
+          browserSupport.createBrowser(style, server.getId(), server.getName(), server.getName())
+              .openURL(url);
+        } catch (PartInitException ex) {
+          // Unable to use the normal browser support, so punt to the OS
+          logger.log(Level.WARNING, "Cannot launch a browser", ex);
+          Program.launch(pageLocation);
+        } catch (MalformedURLException ex) {
+          logger.log(Level.SEVERE, "Invalid dev_appserver URL", ex);
+        }
+        return Status.OK_STATUS;
+      }
+    };
+    openJob.schedule();
   }
 
   private void setupDebugTarget(ILaunch launch, ILaunchConfiguration configuration, int port,
@@ -175,50 +198,83 @@ public class LocalAppEngineServerLaunchConfigurationDelegate
     return "http://" + DEBUGGER_HOST + ":8080";
   }
 
-  /**
-   * Open a browser on the provided page on server start.
-   */
-  private class OpenBrowserListener implements IServerListener {
-    private String pageLocation;
 
-    public OpenBrowserListener(String pageLocation) {
-      this.pageLocation = pageLocation;
+  /**
+   * Monitors the server and launch state. Ensures listeners are properly removed on server stop and
+   * launch termination. It is necessary in part as there may be several launches per
+   * LaunchConfigurationDelegate.
+   * <ul>
+   * <li>On server start, open a browser page</li>
+   * <li>On launch-termination, stop the server.</li>
+   * <li>On server stop, terminate the launch</li>
+   * </ul>
+   */
+  private class ServerLaunchMonitor implements ILaunchesListener2, IServerListener {
+    private ILaunchConfiguration configuration;
+    private ILaunch launch;
+    private IServer server;
+
+    /**
+     * Setup the monitor.
+     */
+    ServerLaunchMonitor(ILaunchConfiguration configuration, ILaunch launch, IServer server) {
+      this.configuration = configuration;
+      this.launch = launch;
+      this.server = server;
+    }
+
+    /** Add required listeners */
+    private void engage() {
+      getLaunchManager().addLaunchListener(this);
+      server.addServerListener(this);
+    }
+
+    /** Remove any installed listeners */
+    private void disengage() {
+      getLaunchManager().removeLaunchListener(this);
+      server.removeServerListener(this);
     }
 
     @Override
     public void serverChanged(ServerEvent event) {
-      if (event.getState() != IServer.STATE_STARTED) {
-        return;
-      }
-      final IServer server = event.getServer();
-      final IWorkbench workbench = PlatformUI.getWorkbench();
+      Preconditions.checkState(server == event.getServer());
+      switch (event.getState()) {
+        case IServer.STATE_STARTED:
+          openBrowserPage(configuration, server);
+          return;
 
-      Job openJob = new UIJob(workbench.getDisplay(), "Launching start page") {
-
-        @Override
-        public IStatus runInUIThread(IProgressMonitor monitor) {
-          if (server.getServerState() != IServer.STATE_STARTED) {
-            return Status.CANCEL_STATUS;
-          }
+        case IServer.STATE_STOPPED:
+          disengage();
           try {
-            URL url = new URL(pageLocation);
-            IWorkbenchBrowserSupport browserSupport = workbench.getBrowserSupport();
-            int style = IWorkbenchBrowserSupport.LOCATION_BAR
-                | IWorkbenchBrowserSupport.NAVIGATION_BAR | IWorkbenchBrowserSupport.STATUS;
-            browserSupport.createBrowser(style, server.getId(), server.getName(), server.getName())
-                .openURL(url);
-          } catch (PartInitException ex) {
-            // Unable to use the normal browser support, so punt to the OS
-            logger.log(Level.WARNING, "Cannot launch a browser", ex);
-            Program.launch(pageLocation);
-          } catch (MalformedURLException ex) {
-            logger.log(Level.WARNING, "Unable to determine dev_appserver URL", ex);
+            logger.fine("Server stopped; terminating launch");//$NON-NLS-1$
+            launch.terminate();
+          } catch (DebugException ex) {
+            logger.log(Level.WARNING, "Unable to terminate launch", ex);
           }
-          return Status.OK_STATUS;
-        }
-      };
-      openJob.schedule();
-      server.removeServerListener(this);
+      }
     }
+
+    @Override
+    public void launchesTerminated(ILaunch[] launches) {
+      for (ILaunch terminated : launches) {
+        if (terminated == launch) {
+          disengage();
+          if (server.getServerState() == IServer.STATE_STARTED) {
+            logger.fine("Launch terminated; stopping server");//$NON-NLS-1$
+            server.stop(false);
+          }
+          return;
+        }
+      }
+    }
+
+    @Override
+    public void launchesRemoved(ILaunch[] launches) {}
+
+    @Override
+    public void launchesChanged(ILaunch[] launches) {}
+
+    @Override
+    public void launchesAdded(ILaunch[] launches) {}
   }
 }
