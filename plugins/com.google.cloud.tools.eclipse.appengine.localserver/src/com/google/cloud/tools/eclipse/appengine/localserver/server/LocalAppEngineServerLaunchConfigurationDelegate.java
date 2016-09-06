@@ -18,6 +18,7 @@ package com.google.cloud.tools.eclipse.appengine.localserver.server;
 import com.google.cloud.tools.eclipse.appengine.localserver.Activator;
 import com.google.cloud.tools.eclipse.appengine.localserver.PreferencesInitializer;
 import com.google.cloud.tools.eclipse.appengine.localserver.ui.LocalAppEngineConsole;
+import com.google.cloud.tools.eclipse.ui.util.MessageConsoleUtilities;
 import com.google.cloud.tools.eclipse.usagetracker.AnalyticsEvents;
 import com.google.cloud.tools.eclipse.usagetracker.AnalyticsPingManager;
 import com.google.common.base.Preconditions;
@@ -95,7 +96,9 @@ public class LocalAppEngineServerLaunchConfigurationDelegate
       runnables.add(deployPath.toFile());
     }
 
-    LocalAppEngineConsole console = ConsoleUtilities.findConsole(configuration.getName(), serverBehaviour);
+    LocalAppEngineConsole console =
+        MessageConsoleUtilities.findOrCreateConsole(configuration.getName(),
+                                            new LocalAppEngineConsole.Factory(serverBehaviour));
     console.clearConsole();
     console.activate();
 

@@ -61,4 +61,31 @@ public class MessageConsoleUtilities {
     }
     return messageConsole;
   }
+  
+  public static <C extends MessageConsole> C findOrCreateConsole(String name, ConsoleFactory<C> factory) {
+    ConsolePlugin plugin = ConsolePlugin.getDefault();
+    IConsoleManager manager = plugin.getConsoleManager();
+    IConsole[] consoles = manager.getConsoles();
+    for (IConsole console : consoles) {
+      if (name.equals(console.getName())) {
+          return (C) console;
+       }
+    }
+    // console not found, so create a new one
+    C console = factory.createConsole(name);
+    manager.addConsoles(new IConsole[]{console});
+    return console;
+  }
+
+  public static <C extends MessageConsole> C createConsole(String name, ConsoleFactory<C> factory) {
+    ConsolePlugin plugin = ConsolePlugin.getDefault();
+    IConsoleManager manager = plugin.getConsoleManager();
+    C console = factory.createConsole(name);
+    manager.addConsoles(new IConsole[]{console});
+    return console;
+  }
+
+  public interface ConsoleFactory<C extends MessageConsole> {
+    C createConsole(String name);
+  }
 }

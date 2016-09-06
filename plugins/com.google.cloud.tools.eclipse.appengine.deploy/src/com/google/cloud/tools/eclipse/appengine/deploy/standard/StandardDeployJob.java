@@ -56,7 +56,7 @@ public class StandardDeployJob extends WorkspaceJob {
 
   private StandardDeployJobConfig config;
 
-  public StandardDeployJob(ExplodedWarPublisher exporter,
+  StandardDeployJob(ExplodedWarPublisher exporter,
                            StandardProjectStaging staging,
                            AppEngineProjectDeployer deployer,
                            StandardDeployJobConfig config) {
@@ -170,4 +170,49 @@ public class StandardDeployJob extends WorkspaceJob {
     }
   }
 
+  public static class Builder {
+    private ExplodedWarPublisher exporter;
+    private StandardProjectStaging staging;
+    private AppEngineProjectDeployer deployer;
+    private StandardDeployJobConfig config;
+
+    public Builder exporter(ExplodedWarPublisher exporter) {
+      this.exporter = exporter;
+      return this;
+    }
+
+    public Builder staging(StandardProjectStaging staging) {
+      this.staging = staging;
+      return this;
+    }
+
+    public Builder deployer(AppEngineProjectDeployer deployer) {
+      this.deployer = deployer;
+      return this;
+    }
+
+    public Builder config(StandardDeployJobConfig config) {
+      this.config = config;
+      return this;
+    }
+
+    public StandardDeployJob build() {
+      Preconditions.checkNotNull(config, "config is null");
+
+      if (exporter == null) {
+        exporter = new ExplodedWarPublisher();
+      }
+
+      if (staging == null) {
+        staging = new StandardProjectStaging();
+      }
+
+      if (deployer == null) {
+        deployer = new AppEngineProjectDeployer();
+      }
+
+      return new StandardDeployJob(exporter, staging, deployer, config);
+    }
+
+  }
 }

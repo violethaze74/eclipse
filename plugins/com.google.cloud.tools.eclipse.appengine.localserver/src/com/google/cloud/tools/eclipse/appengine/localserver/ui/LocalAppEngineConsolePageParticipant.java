@@ -30,7 +30,7 @@ public class LocalAppEngineConsolePageParticipant implements IConsolePagePartici
   @Override
   public void init(IPageBookViewPage page, IConsole console) {
     this.console = (LocalAppEngineConsole) console;
-    
+
     // contribute to toolbar
     IActionBars actionBars = page.getSite().getActionBars();
     configureToolBar(actionBars.getToolBarManager());
@@ -50,7 +50,7 @@ public class LocalAppEngineConsolePageParticipant implements IConsolePagePartici
   public void deactivated() {
     update();
   }
-  
+
   private void configureToolBar(IToolBarManager toolbarManager) {
     terminateAction = new Action(Messages.actionStop) {
       @Override
@@ -69,10 +69,10 @@ public class LocalAppEngineConsolePageParticipant implements IConsolePagePartici
     terminateAction.setImageDescriptor(ImageResource.getImageDescriptor(ImageResource.IMG_ELCL_STOP));
     terminateAction.setHoverImageDescriptor(ImageResource.getImageDescriptor(ImageResource.IMG_CLCL_STOP));
     terminateAction.setDisabledImageDescriptor(ImageResource.getImageDescriptor(ImageResource.IMG_DLCL_STOP));
-    
+
     toolbarManager.appendToGroup(IConsoleConstants.LAUNCH_GROUP, terminateAction);
   }
-  
+
   private void update() {
     if (terminateAction != null) {
       LocalAppEngineServerBehaviour serverBehaviour = console.getServerBehaviourDelegate();
@@ -84,4 +84,3 @@ public class LocalAppEngineConsolePageParticipant implements IConsolePagePartici
   }
  
 }
-
