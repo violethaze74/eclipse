@@ -1,55 +1,35 @@
-/*******************************************************************************
+/*
  * Copyright 2016 Google Inc. All Rights Reserved.
  *
- * All rights reserved. This program and the accompanying materials are made
- * available under the terms of the Eclipse Public License v1.0 which
- * accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations under
- * the License.
- *******************************************************************************/
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package com.google.cloud.tools.eclipse.appengine.facets;
 
-import com.google.cloud.tools.eclipse.util.MavenUtils;
-import com.google.cloud.tools.eclipse.util.status.StatusUtil;
 import com.google.cloud.tools.eclipse.util.templates.appengine.AppEngineTemplateUtility;
-import com.google.common.base.Preconditions;
 
-import org.apache.maven.model.Dependency;
-import org.apache.maven.model.Model;
-import org.apache.maven.model.io.DefaultModelWriter;
 import org.eclipse.core.resources.IContainer;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IProject;
-import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.Path;
-import org.eclipse.jdt.core.IAccessRule;
-import org.eclipse.jdt.core.IClasspathAttribute;
-import org.eclipse.jdt.core.IClasspathEntry;
-import org.eclipse.jdt.core.IJavaProject;
-import org.eclipse.jdt.core.JavaCore;
-import org.eclipse.jst.j2ee.classpathdep.UpdateClasspathAttributeUtil;
-import org.eclipse.m2e.core.MavenPlugin;
-import org.eclipse.m2e.core.project.IMavenProjectFacade;
 import org.eclipse.wst.common.project.facet.core.IDelegate;
 import org.eclipse.wst.common.project.facet.core.IProjectFacetVersion;
 
 import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.IOException;
 import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Properties;
 
 public class FacetInstallDelegate implements IDelegate {
   private final static String APPENGINE_WEB_XML = "appengine-web.xml";
@@ -63,41 +43,7 @@ public class FacetInstallDelegate implements IDelegate {
                       IProjectFacetVersion version,
                       Object config,
                       IProgressMonitor monitor) throws CoreException {
-    if (MavenUtils.hasMavenNature(project)) { 
-      addAppEngineJarsToMavenProject(project, monitor);
-    } else {
-      addAppEngineJarsToClasspath(project, monitor);
-    }
     createConfigFiles(project, monitor);
-  }
-
-  /**
-   * Adds jars associated with the App Engine facet if they don't already exist in
-   * <code>project</code>
-   */
-  private void addAppEngineJarsToClasspath(IProject project, IProgressMonitor monitor)
-      throws CoreException {
-    IJavaProject javaProject = JavaCore.create(project);
-    IClasspathEntry[] rawClasspath = javaProject.getRawClasspath();
-    IClasspathEntry appEngineContainer = JavaCore.newContainerEntry(
-        new Path(AppEngineSdkClasspathContainer.CONTAINER_ID),
-        new IAccessRule[0],
-        new IClasspathAttribute[]{
-            UpdateClasspathAttributeUtil.createDependencyAttribute(true /*isWebApp */)
-        },
-        true /* isExported */);
-
-    // Check if App Engine container entry already exists
-    for (int i = 0; i < rawClasspath.length; i++) {
-      if (rawClasspath[i].equals(appEngineContainer)) {
-        return;
-      }
-    }
-
-    IClasspathEntry[] newClasspath = new IClasspathEntry[rawClasspath.length + 1];
-    System.arraycopy(rawClasspath, 0, newClasspath, 0, rawClasspath.length);
-    newClasspath[newClasspath.length - 1] = appEngineContainer;
-    javaProject.setRawClasspath(newClasspath, monitor);
   }
 
   /**
@@ -130,56 +76,6 @@ public class FacetInstallDelegate implements IDelegate {
     String configFileLocation = appEngineWebXml.getLocation().toString();
     AppEngineTemplateUtility.createFileContent(
         configFileLocation, AppEngineTemplateUtility.APPENGINE_WEB_XML_TEMPLATE, Collections.<String, String> emptyMap());
-  }
-
-  private void addAppEngineJarsToMavenProject(IProject project, IProgressMonitor monitor) throws CoreException {
-    IMavenProjectFacade facade = MavenPlugin.getMavenProjectRegistry().getProject(project);
-    Model pom = facade.getMavenProject(monitor).getModel();
-
-    List<Dependency> currentDependencies = pom.getDependencies();
-    List<Dependency> updatedDependencies = updateMavenProjectDependencies(currentDependencies);
-    pom.setDependencies(updatedDependencies);
-    updatePomProperties(pom.getProperties(), monitor);
-
-    DefaultModelWriter writer = new DefaultModelWriter();
-    File pomFile = pom.getPomFile();
-    try {
-      writer.write(pomFile, null /* options */, pom);
-    } catch (IOException e) {
-      throw new CoreException(StatusUtil.error(this, e.getMessage()));
-    }
-    project.getFile(pomFile.getName()).refreshLocal(IResource.DEPTH_ZERO, monitor);
-  }
-
-  // visible for testing
-  public static List<Dependency> updateMavenProjectDependencies(List<Dependency> initialDependencies) {
-    List<Dependency> allAppEngineDependencies = MavenAppEngineFacetUtil.getAppEngineDependencies();
-    if (initialDependencies == null) {
-      return allAppEngineDependencies;
-    }
-
-    if (initialDependencies.size() == 0) {
-      return allAppEngineDependencies;
-    }
-
-    for (Dependency appEngineDependency : allAppEngineDependencies) {
-      if(!MavenUtils.doesListContainDependency(initialDependencies, appEngineDependency)) {
-        initialDependencies.add(appEngineDependency);
-      }
-    }
-
-    return initialDependencies;
-  }
-
-  //visible for testing
-  public static void updatePomProperties(Properties projectProperties, IProgressMonitor monitor) {
-    Preconditions.checkNotNull(projectProperties, "project properties is null");
-    Map<String, String> allAppEngineProperties = MavenAppEngineFacetUtil.getAppEnginePomProperties(monitor);
-    for (Entry<String, String> property : allAppEngineProperties.entrySet()) {
-      if(!projectProperties.containsKey(property.getKey())) {
-        projectProperties.setProperty(property.getKey(), property.getValue());
-      }
-    }
   }
 
 }

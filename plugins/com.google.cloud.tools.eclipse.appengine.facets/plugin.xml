@@ -39,11 +39,6 @@
     </supported>
   </extension>
 
-  <extension point="org.eclipse.jdt.core.classpathContainerInitializer">
-    <classpathContainerInitializer
-      id="AppEngineSDK"
-      class="com.google.cloud.tools.eclipse.appengine.facets.AppEngineSdkClasspathInitializer"/>
-  </extension>
   <extension point="org.eclipse.wst.common.project.facet.core.listeners">
     <listener
       class="com.google.cloud.tools.eclipse.appengine.facets.AppEngineRuntimeChangeListener"
