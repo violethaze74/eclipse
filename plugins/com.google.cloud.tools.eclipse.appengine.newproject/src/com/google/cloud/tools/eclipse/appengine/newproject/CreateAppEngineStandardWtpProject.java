@@ -1,5 +1,9 @@
 package com.google.cloud.tools.eclipse.appengine.newproject;
 
+import java.lang.reflect.InvocationTargetException;
+import java.net.URI;
+import java.util.Arrays;
+
 import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IProjectDescription;
@@ -10,14 +14,21 @@ import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
+import org.eclipse.jdt.core.IAccessRule;
+import org.eclipse.jdt.core.IClasspathAttribute;
+import org.eclipse.jdt.core.IClasspathEntry;
+import org.eclipse.jdt.core.IJavaProject;
+import org.eclipse.jdt.core.JavaCore;
+import org.eclipse.jdt.core.JavaModelException;
+import org.eclipse.jdt.junit.JUnitCore;
+import org.eclipse.jst.j2ee.classpathdep.UpdateClasspathAttributeUtil;
 import org.eclipse.ui.actions.WorkspaceModifyOperation;
 import org.eclipse.ui.ide.undo.CreateProjectOperation;
 import org.eclipse.wst.common.project.facet.core.IFacetedProject;
 import org.eclipse.wst.common.project.facet.core.ProjectFacetsManager;
 
 import com.google.cloud.tools.eclipse.appengine.facets.AppEngineStandardFacet;
-import java.lang.reflect.InvocationTargetException;
-import java.net.URI;
+import com.google.common.annotations.VisibleForTesting;
 
 /**
 * Utility to make a new Eclipse project with the App Engine Standard facets in the workspace.  
@@ -61,8 +72,25 @@ class CreateAppEngineStandardWtpProject extends WorkspaceModifyOperation {
     AppEngineStandardFacet.installAllAppEngineRuntimes(facetedProject, true /* force */, monitor);
     
     setProjectIdPreference(newProject);
+
+    addJunit4ToClasspath(monitor, newProject);
   }
 
+  private void addJunit4ToClasspath(IProgressMonitor monitor, final IProject newProject) throws CoreException,
+                                                                                         JavaModelException {
+    IJavaProject javaProject = JavaCore.create(newProject);
+    IClasspathAttribute nonDependencyAttribute = UpdateClasspathAttributeUtil.createNonDependencyAttribute();
+    IClasspathEntry junit4Container = JavaCore.newContainerEntry(JUnitCore.JUNIT4_CONTAINER_PATH,
+                                                                 new IAccessRule[0],
+                                                                 new IClasspathAttribute[]{ nonDependencyAttribute },
+                                                                 false);
+    IClasspathEntry[] rawClasspath = javaProject.getRawClasspath();
+    IClasspathEntry[] newRawClasspath = Arrays.copyOf(rawClasspath, rawClasspath.length + 1);
+    newRawClasspath[newRawClasspath.length - 1] = junit4Container;
+    javaProject.setRawClasspath(newRawClasspath, monitor);
+  }
+
+  @VisibleForTesting
   void setProjectIdPreference(IProject project) {
     String projectId = config.getAppEngineProjectId();
     if (projectId != null && !projectId.isEmpty()) {
