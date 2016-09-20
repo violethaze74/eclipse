@@ -17,6 +17,7 @@ package com.google.cloud.tools.eclipse.appengine.facets;
 
 import static org.mockito.Mockito.when;
 
+import org.eclipse.wst.common.project.facet.core.ProjectFacetsManager;
 import org.eclipse.wst.server.core.IRuntimeType;
 import org.junit.Assert;
 import org.junit.Test;
@@ -28,6 +29,12 @@ import org.mockito.runners.MockitoJUnitRunner;
 public class AppEngineStandardFacetTest {
   @Mock private org.eclipse.wst.server.core.IRuntime serverRuntime;
   @Mock private IRuntimeType runtimeType;
+
+  @Test
+  public void testStandardFacetExists() {
+    Assert.assertTrue(
+        ProjectFacetsManager.isProjectFacetDefined("com.google.cloud.tools.eclipse.appengine.facets.standard"));
+  }
 
   @Test
   public void testIsAppEngineStandardRuntime_appEngineRuntime() {

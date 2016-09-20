@@ -1,6 +1,5 @@
 package com.google.cloud.tools.eclipse.appengine.facets;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 

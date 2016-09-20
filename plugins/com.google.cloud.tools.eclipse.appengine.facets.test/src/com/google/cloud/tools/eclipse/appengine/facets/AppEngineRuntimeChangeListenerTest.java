@@ -29,7 +29,7 @@ import org.mockito.runners.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class AppEngineRuntimeChangeListenerTest {
-  private AppEngineRuntimeChangeListener listener = new AppEngineRuntimeChangeListener();
+  private AppEngineStandardRuntimeChangeListener listener = new AppEngineStandardRuntimeChangeListener();
   @Mock private IPrimaryRuntimeChangedEvent event;
 
   

@@ -30,10 +30,10 @@ import org.eclipse.wst.common.project.facet.core.events.IPrimaryRuntimeChangedEv
 import org.eclipse.wst.common.project.facet.core.runtime.IRuntime;
 
 /**
- * Listens for events where the App Engine runtime has been made the primary
+ * Listens for events where the App Engine standard runtime has been made the primary
  * runtime for a project. Installs the App Engine facet if necessary.
  */
-public class AppEngineRuntimeChangeListener implements IFacetedProjectListener {
+public class AppEngineStandardRuntimeChangeListener implements IFacetedProjectListener {
 
   @Override
   public void handleEvent(IFacetedProjectEvent event) {

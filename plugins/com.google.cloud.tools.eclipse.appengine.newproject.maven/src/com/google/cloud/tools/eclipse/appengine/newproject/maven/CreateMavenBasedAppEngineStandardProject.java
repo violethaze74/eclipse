@@ -19,8 +19,8 @@ import org.eclipse.ui.actions.WorkspaceModifyOperation;
 import org.eclipse.wst.common.project.facet.core.IFacetedProject;
 import org.eclipse.wst.common.project.facet.core.ProjectFacetsManager;
 
-import com.google.cloud.tools.eclipse.util.MavenUtils;
 import com.google.cloud.tools.eclipse.appengine.facets.AppEngineStandardFacet;
+import com.google.cloud.tools.eclipse.util.MavenUtils;
 
 public class CreateMavenBasedAppEngineStandardProject extends WorkspaceModifyOperation {
   IProjectConfigurationManager projectConfigurationManager =

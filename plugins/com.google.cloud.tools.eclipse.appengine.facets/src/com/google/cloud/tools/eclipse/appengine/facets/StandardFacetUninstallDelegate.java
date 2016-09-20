@@ -14,7 +14,7 @@ import org.eclipse.wst.common.project.facet.core.IProjectFacetVersion;
 import org.eclipse.wst.common.project.facet.core.ProjectFacetsManager;
 import org.eclipse.wst.common.project.facet.core.runtime.IRuntime;
 
-public class FacetUninstallDelegate implements IDelegate {
+public class StandardFacetUninstallDelegate implements IDelegate {
 
   @Override
   public void execute(IProject project, IProjectFacetVersion version, Object config,
