@@ -152,7 +152,7 @@ described below.
    items are changed in the target platform, such as a new release of the
    `appengine-plugins-core`.
 
-  0. As described above, you must first do a Maven build to build the target platform:
+  0. As described above, you must first build the target platform with Maven:
   
      `$ mvn -Pide-target-platform package`
      
