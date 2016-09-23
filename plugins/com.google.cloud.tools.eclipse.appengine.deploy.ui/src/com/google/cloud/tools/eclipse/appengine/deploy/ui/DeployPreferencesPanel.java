@@ -40,6 +40,7 @@ import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.layout.GridDataFactory;
 import org.eclipse.jface.layout.GridLayoutFactory;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
@@ -85,6 +86,8 @@ public class DeployPreferencesPanel extends Composite {
   private Button overrideDefaultBucketButton;
   private Label bucketLabel;
   private Text bucket;
+
+  private ExpandableComposite expandableComposite;
 
   private DeployPreferencesModel model;
   private ObservablesManager observables;
@@ -288,7 +291,7 @@ public class DeployPreferencesPanel extends Composite {
   }
 
   private void createAdvancedSection() {
-    ExpandableComposite expandableComposite = createExpandableComposite();
+    createExpandableComposite();
     final Composite bucketComposite = createBucketSection(expandableComposite);
     expandableComposite.setClient(bucketComposite);
     expandableComposite.addExpansionListener(new ExpansionAdapter() {
@@ -300,15 +303,13 @@ public class DeployPreferencesPanel extends Composite {
     GridLayoutFactory.fillDefaults().generateLayout(expandableComposite);
   }
 
-  private ExpandableComposite createExpandableComposite() {
-    ExpandableComposite expandableComposite =
-        new ExpandableComposite(this, SWT.NONE, ExpandableComposite.TWISTIE | ExpandableComposite.CLIENT_INDENT);
+  private void createExpandableComposite() {
+    expandableComposite = new ExpandableComposite(this, SWT.NONE, ExpandableComposite.TWISTIE | ExpandableComposite.CLIENT_INDENT);
     expandableComposite.setText(Messages.getString("settings.advanced"));
     expandableComposite.setExpanded(false);
-    GridDataFactory.fillDefaults().applyTo(expandableComposite);
     FontUtil.convertFontToBold(expandableComposite);
+    GridDataFactory.fillDefaults().applyTo(expandableComposite);
     formToolkit.adapt(expandableComposite, true, true);
-    return expandableComposite;
   }
 
   private Composite createBucketSection(Composite parent) {
@@ -411,5 +412,12 @@ public class DeployPreferencesPanel extends Composite {
     if (layoutChangedHandler != null) {
       layoutChangedHandler.run();
     }
+  }
+
+  @Override
+  public void setFont(Font font) {
+    super.setFont(font);
+    expandableComposite.setFont(font);
+    FontUtil.convertFontToBold(expandableComposite);
   }
 }
