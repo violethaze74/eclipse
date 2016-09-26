@@ -31,6 +31,7 @@ public class DeployConsole extends MessageConsole {
       @Override
       public void done(IJobChangeEvent event) {
         PlatformUI.getWorkbench().getDisplay().asyncExec(new Runnable() {
+          @Override
           public void run() {
             setName(Messages.getString("job.terminated.template", getName()));
           }

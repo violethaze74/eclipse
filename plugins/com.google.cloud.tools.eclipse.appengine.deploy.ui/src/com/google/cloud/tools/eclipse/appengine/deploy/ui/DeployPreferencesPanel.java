@@ -56,7 +56,7 @@ import org.osgi.service.prefs.BackingStoreException;
 
 import com.google.cloud.tools.eclipse.ui.util.FontUtil;
 import com.google.cloud.tools.eclipse.ui.util.databinding.BucketNameValidator;
-import com.google.cloud.tools.eclipse.ui.util.databinding.ProjectIdValidator;
+import com.google.cloud.tools.eclipse.ui.util.databinding.ProjectIdInputValidator;
 import com.google.cloud.tools.eclipse.ui.util.databinding.ProjectVersionValidator;
 import com.google.cloud.tools.eclipse.ui.util.event.OpenUriSelectionListener;
 import com.google.cloud.tools.eclipse.ui.util.event.OpenUriSelectionListener.ErrorHandler;
@@ -145,8 +145,8 @@ public class DeployPreferencesPanel extends Composite {
     IObservableValue projectIdModel = PojoProperties.value("projectId").observe(model);
 
     context.bindValue(projectIdField, projectIdModel,
-                      new UpdateValueStrategy().setAfterGetValidator(new ProjectIdValidator()),
-                      new UpdateValueStrategy().setAfterGetValidator(new ProjectIdValidator()));
+                      new UpdateValueStrategy().setAfterGetValidator(new ProjectIdInputValidator()),
+                      new UpdateValueStrategy().setAfterGetValidator(new ProjectIdInputValidator()));
   }
 
   private void setupProjectVersionDataBinding(DataBindingContext context) {
