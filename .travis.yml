@@ -1,7 +1,5 @@
 sudo: false
 language: java
-jdk:
-  - openjdk7
 install: 
   # download Cloud SDK
   - wget https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-125.0.0-linux-x86_64.tar.gz
@@ -20,10 +18,13 @@ before_script:
   - sleep 3 # give xvfb some time to start
   - metacity --sm-disable --replace &
   - sleep 3 # give metacity some time to start
-script:
-  - mvn -Ptravis --fail-at-end verify
-  - jdk_switcher use oraclejdk8
-  - mvn -Ptravis --fail-at-end verify -Declipse.target=neon
+# mars is the default target
+matrix:
+  include:
+  - jdk: openjdk7
+  - jdk: oraclejdk8
+    env: ECLIPSE_TARGET=neon
+script: mvn -Ptravis --fail-at-end verify ${ECLIPSE_TARGET:+-Declipse.target=${ECLIPSE_TARGET}}
 addons:
   apt:
     packages:
