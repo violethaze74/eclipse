@@ -2,8 +2,13 @@ package com.google.cloud.tools.eclipse.appengine.newproject;
 
 import org.eclipse.core.resources.IProject;
 
+import com.google.cloud.tools.eclipse.appengine.libraries.Library;
+
 import java.io.File;
 import java.net.URI;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
 
 /**
  * Collects all data needed to create and configure an App Engine Standard Project.
@@ -14,6 +19,7 @@ class AppEngineStandardProjectConfig {
   private String appEngineProjectId = "";
   private String packageName = "";
   private IProject project;
+  private List<Library> appEngineLibraries = Collections.emptyList();
 
 
   public File getCloudSdkLocation() {
@@ -58,6 +64,14 @@ class AppEngineStandardProjectConfig {
 
   public void setEclipseProjectLocationUri(URI uri) {
     this.eclipseProjectLocationUri = uri;
+  }
+
+  public List<Library> getAppEngineLibraries() {
+    return appEngineLibraries;
+  }
+
+  public void setAppEngineLibraries(List<Library> libraries) {
+    this.appEngineLibraries = new LinkedList<>(libraries);
   }
 
 }

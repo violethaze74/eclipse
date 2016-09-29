@@ -7,3 +7,6 @@ Bundle-Vendor: %providerName
 Bundle-Localization: plugin
 Bundle-RequiredExecutionEnvironment: JavaSE-1.7
 Bundle-ActivationPolicy: lazy
+Require-Bundle: org.eclipse.equinox.common
+Export-Package: com.google.cloud.tools.eclipse.appengine.libraries
+Import-Package: com.google.common.base

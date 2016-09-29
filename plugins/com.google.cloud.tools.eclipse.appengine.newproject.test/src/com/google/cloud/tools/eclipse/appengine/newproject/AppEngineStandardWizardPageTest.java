@@ -1,5 +1,7 @@
 package com.google.cloud.tools.eclipse.appengine.newproject;
 
+import static org.junit.Assert.assertTrue;
+
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -34,4 +36,8 @@ public class AppEngineStandardWizardPageTest {
         page.getDescription());
   }
 
+  @Test
+  public void testGetSelectedLibrariesIsEmptyInitially() {
+    assertTrue(page.getSelectedLibraries().isEmpty());
+  }
 }

@@ -1,7 +1,11 @@
 package com.google.cloud.tools.eclipse.appengine.newproject;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
+
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Collections;
 
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IWorkspace;
@@ -10,6 +14,8 @@ import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.junit.Assert;
 import org.junit.Test;
+
+import com.google.cloud.tools.eclipse.appengine.libraries.Library;
 
 public class AppEngineStandardProjectConfigTest {
 
@@ -44,4 +50,10 @@ public class AppEngineStandardProjectConfigTest {
     Assert.assertEquals(new URI("file://foo/bar"), config.getEclipseProjectLocationUri());    
   }
 
+  @Test
+  public void testAppEngineLibraries() {
+    config.setAppEngineLibraries(Collections.singletonList(new Library("app-engine-library")));
+    assertThat(config.getAppEngineLibraries().size(), is(1));
+    assertThat(config.getAppEngineLibraries().iterator().next().getId(), is("app-engine-library"));
+  }
 }

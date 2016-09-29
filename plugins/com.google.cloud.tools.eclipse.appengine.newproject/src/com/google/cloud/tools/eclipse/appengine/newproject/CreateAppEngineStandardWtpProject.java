@@ -3,6 +3,7 @@ package com.google.cloud.tools.eclipse.appengine.newproject;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URI;
 import java.util.Arrays;
+import java.util.List;
 
 import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.core.resources.IProject;
@@ -13,6 +14,7 @@ import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.SubMonitor;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.jdt.core.IAccessRule;
 import org.eclipse.jdt.core.IClasspathAttribute;
@@ -28,6 +30,7 @@ import org.eclipse.wst.common.project.facet.core.IFacetedProject;
 import org.eclipse.wst.common.project.facet.core.ProjectFacetsManager;
 
 import com.google.cloud.tools.eclipse.appengine.facets.AppEngineStandardFacet;
+import com.google.cloud.tools.eclipse.appengine.libraries.Library;
 import com.google.common.annotations.VisibleForTesting;
 
 /**
@@ -73,7 +76,27 @@ class CreateAppEngineStandardWtpProject extends WorkspaceModifyOperation {
     
     setProjectIdPreference(newProject);
 
+    addAppEngineLibrariesToBuildPath(newProject, config.getAppEngineLibraries(), monitor);
+
     addJunit4ToClasspath(monitor, newProject);
+  }
+
+  private void addAppEngineLibrariesToBuildPath(IProject newProject, List<Library> libraries, IProgressMonitor monitor) throws CoreException {
+    SubMonitor subMonitor = SubMonitor.convert(monitor, libraries.size());
+    subMonitor.setTaskName("Adding AppEngine libraries");
+    IJavaProject javaProject = JavaCore.create(newProject);
+    IClasspathEntry[] rawClasspath = javaProject.getRawClasspath();
+    IClasspathEntry[] newRawClasspath = Arrays.copyOf(rawClasspath, rawClasspath.length + libraries.size());
+    for (int i = 0; i < libraries.size(); i++) {
+      Library library = libraries.get(i);
+      IClasspathEntry libraryContainer = JavaCore.newContainerEntry(library.getContainerPath(),
+                                                                    new IAccessRule[0],
+                                                                    new IClasspathAttribute[0],
+                                                                    false);
+      newRawClasspath[rawClasspath.length + i] = libraryContainer;
+      subMonitor.worked(1);
+    }
+    javaProject.setRawClasspath(newRawClasspath, monitor);
   }
 
   private void addJunit4ToClasspath(IProgressMonitor monitor, final IProject newProject) throws CoreException,

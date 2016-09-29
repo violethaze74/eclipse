@@ -57,6 +57,8 @@ public class StandardProjectWizard extends Wizard implements INewWizard {
       config.setEclipseProjectLocationUri(page.getLocationURI());
     }
 
+    config.setAppEngineLibraries(page.getSelectedLibraries());
+
     // todo set up
     final IAdaptable uiInfoAdapter = WorkspaceUndoUtil.getUIInfoAdapter(getShell());
     IRunnableWithProgress runnable = new CreateAppEngineStandardWtpProject(config, uiInfoAdapter);
