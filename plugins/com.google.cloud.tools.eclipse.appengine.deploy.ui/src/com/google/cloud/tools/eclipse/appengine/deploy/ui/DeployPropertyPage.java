@@ -115,8 +115,8 @@ public class DeployPropertyPage extends PropertyPage {
         PlatformUI.getWorkbench().getService(IGoogleLoginService.class);
 
     if (AppEngineStandardFacet.hasAppEngineFacet(facetedProject)) {
-      return new StandardDeployPreferencesPanel(
-          container, project, loginService, getLayoutChangedHandler());
+      return new StandardDeployPreferencesPanel(container, project, loginService,
+          getLayoutChangedHandler(),  true /* allowEmptyProjectId */);
     } else if (AppEngineFlexFacet.hasAppEngineFacet(facetedProject)) {
       return new FlexDeployPreferencesPanel(container);
     } else {

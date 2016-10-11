@@ -98,12 +98,14 @@ public class StandardDeployPreferencesPanel extends DeployPreferencesPanel {
   private DataBindingContext bindingContext;
 
   private Runnable layoutChangedHandler;
+  private boolean allowEmptyProjectId = false;
 
-  public StandardDeployPreferencesPanel(Composite parent,
-      IProject project, IGoogleLoginService loginService, Runnable layoutChangedHandler) {
+  public StandardDeployPreferencesPanel(Composite parent, IProject project,
+      IGoogleLoginService loginService, Runnable layoutChangedHandler, boolean allowEmptyProjectId) {
     super(parent, SWT.NONE);
 
     this.layoutChangedHandler = layoutChangedHandler;
+    this.allowEmptyProjectId = allowEmptyProjectId;
 
     createCredentialSection(loginService);
 
@@ -142,8 +144,8 @@ public class StandardDeployPreferencesPanel extends DeployPreferencesPanel {
     IObservableValue projectIdModel = PojoProperties.value("projectId").observe(model);
 
     context.bindValue(projectIdField, projectIdModel,
-                      new UpdateValueStrategy().setAfterGetValidator(new ProjectIdInputValidator()),
-                      new UpdateValueStrategy().setAfterGetValidator(new ProjectIdInputValidator()));
+                      new UpdateValueStrategy().setAfterGetValidator(new ProjectIdInputValidator(allowEmptyProjectId)),
+                      new UpdateValueStrategy().setAfterGetValidator(new ProjectIdInputValidator(allowEmptyProjectId)));
   }
 
   private void setupProjectVersionDataBinding(DataBindingContext context) {
