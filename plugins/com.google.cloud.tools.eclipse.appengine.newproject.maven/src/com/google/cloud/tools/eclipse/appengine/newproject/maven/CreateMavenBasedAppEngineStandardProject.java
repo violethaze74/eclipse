@@ -35,6 +35,7 @@ import org.eclipse.wst.common.project.facet.core.IFacetedProject;
 import org.eclipse.wst.common.project.facet.core.ProjectFacetsManager;
 
 import com.google.cloud.tools.eclipse.appengine.facets.AppEngineStandardFacet;
+import com.google.cloud.tools.eclipse.preferences.PreferenceUtil;
 import com.google.cloud.tools.eclipse.util.MavenUtils;
 
 public class CreateMavenBasedAppEngineStandardProject extends WorkspaceModifyOperation {
@@ -55,8 +56,7 @@ public class CreateMavenBasedAppEngineStandardProject extends WorkspaceModifyOpe
     SubMonitor progress = SubMonitor.convert(monitor);
     monitor.beginTask("Creating Maven AppEngine archetype", 100);
 
-    // todo: verify whether project ID is necessary during creation. The
-    // archetype seems to require it so we use the artifact if unspecified.
+    // The project ID is currently necessary due to tool bugs.
     String appId = appEngineProjectId;
     if (appId == null || appId.trim().isEmpty()) {
       appId = artifactId;
@@ -84,6 +84,7 @@ public class CreateMavenBasedAppEngineStandardProject extends WorkspaceModifyOpe
           project, true, loopMonitor.newChild(1));
       AppEngineStandardFacet.installAppEngineFacet(facetedProject, true /* installDependentFacets */, loopMonitor.newChild(1));
       AppEngineStandardFacet.installAllAppEngineRuntimes(facetedProject, true /* force */, loopMonitor.newChild(1));
+      PreferenceUtil.setProjectIdPreference(project, appId);
     }
     
     /*
