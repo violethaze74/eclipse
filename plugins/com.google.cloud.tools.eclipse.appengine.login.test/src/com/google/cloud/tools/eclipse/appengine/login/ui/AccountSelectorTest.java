@@ -30,11 +30,11 @@ import com.google.api.client.auth.oauth2.Credential;
 import com.google.cloud.tools.eclipse.appengine.login.IGoogleLoginService;
 import com.google.cloud.tools.ide.login.Account;
 
-import org.eclipse.swt.events.SelectionEvent;
-import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Shell;
-import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -46,10 +46,10 @@ import java.util.HashSet;
 @RunWith(MockitoJUnitRunner.class)
 public class AccountSelectorTest {
 
-  @Mock private IGoogleLoginService loginService;
-  private Display display;
+  @Rule public ShellTestResource shellTestResource = new ShellTestResource();
   private Shell shell;
 
+  @Mock private IGoogleLoginService loginService;
   @Mock private Account account1;
   @Mock private Account account2;
   @Mock private Account account3;
@@ -59,9 +59,7 @@ public class AccountSelectorTest {
 
   @Before
   public void setUp() {
-    display = new Display();
-    shell = new Shell(display);
-
+    shell = shellTestResource.getShell();
     when(account1.getEmail()).thenReturn("some-email-1@example.com");
     when(account1.getOAuth2Credential()).thenReturn(credential1);
     when(account2.getEmail()).thenReturn("some-email-2@example.com");
@@ -70,14 +68,9 @@ public class AccountSelectorTest {
     when(account3.getOAuth2Credential()).thenReturn(credential3);
   }
 
-  @After
-  public void tearDown() {
-    display.dispose();
-  }
-
   @Test(expected = IllegalArgumentException.class)
   public void testConstructor_nullLoginMessage() {
-    new AccountSelector(new Shell(display), loginService, null);
+    new AccountSelector(shell, loginService, null);
   }
 
   @Test
@@ -222,8 +215,7 @@ public class AccountSelectorTest {
     assertFalse(selector.getSelectedEmail().isEmpty());
 
     assertEquals("<select this to login>", selector.combo.getItem(2));
-    selector.combo.select(2);
-    selector.logInOnSelect.widgetSelected(mock(SelectionEvent.class));
+    simulateSelect(selector, 2);
 
     assertEquals(3, selector.combo.getItemCount());
     assertEquals(-1, selector.combo.getSelectionIndex());
@@ -234,6 +226,6 @@ public class AccountSelectorTest {
 
   private void simulateSelect(AccountSelector selector, int index) {
     selector.combo.select(index);
-    selector.logInOnSelect.widgetSelected(mock(SelectionEvent.class));
+    selector.combo.notifyListeners(SWT.Selection, mock(Event.class));
   }
 }
