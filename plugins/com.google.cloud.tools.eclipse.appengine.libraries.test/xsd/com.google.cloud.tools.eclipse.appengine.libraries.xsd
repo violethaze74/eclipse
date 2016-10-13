@@ -108,6 +108,17 @@ limitations under the License.
                </xs:documentation>
             </xs:annotation>
          </xs:attribute>
+         <xs:attribute name="export" type="xs:boolean">
+            <xs:annotation>
+               <xs:documentation>
+                  If &lt;tt&gt;export&lt;/tt&gt; attribute is true, then the corresponding library will be included in
+the WAR file of the project, under &lt;tt&gt;WEB-INF/lib&lt;/tt&gt;. Any &lt;tt&gt;libraryFile&lt;/tt&gt; item can be
+excluded from export by setting its &lt;tt&gt;export&lt;/tt&gt; attribute to false. If the &lt;tt&gt;library&lt;/tt&gt;
+element's &lt;tt&gt;export&lt;/tt&gt; attribute is false, the &lt;tt&gt;export&lt;/tt&gt; attribute of
+&lt;tt&gt;libraryFile&lt;/tt&gt; is disregarded. Defaults to true.
+               </xs:documentation>
+            </xs:annotation>
+         </xs:attribute>
       </xs:complexType>
    </xs:element>
 
@@ -127,11 +138,13 @@ limitations under the License.
                </xs:choice>
             </xs:sequence>
          </xs:sequence>
-         <xs:attribute name="export" type="xs:boolean" use="required">
+         <xs:attribute name="export" type="xs:boolean">
             <xs:annotation>
                <xs:documentation>
-                  If export attribute is true, then the corresponding file will be included in the WAR file of the
-project, under WEB-INF/lib.
+                  If &lt;tt&gt;export&lt;/tt&gt; attribute is true, then the corresponding file will be included in the
+WAR file of the project, under &lt;tt&gt;WEB-INF/lib&lt;/tt&gt; if the parent &lt;tt&gt;library&lt;/tt&gt; element's
+&lt;tt&gt;export&lt;/tt&gt; attribute is also true. If the parent &lt;tt&gt;library&lt;/tt&gt; element's
+&lt;tt&gt;export&lt;/tt&gt; attribute is false, this attribute will be disregarded. Defaults to true.
                </xs:documentation>
             </xs:annotation>
          </xs:attribute>
