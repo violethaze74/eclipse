@@ -45,6 +45,8 @@ public final class Library {
   // library IDs of dependencies that are also need to be added to the build path along this library
   private List<String> libraryDependencies = new ArrayList<>();
 
+  private LibraryRecommendation recommendation = LibraryRecommendation.OPTIONAL;
+
   public Library(String id) {
     Preconditions.checkNotNull(id, "id null");
     Preconditions.checkArgument(!id.isEmpty(), "id empty");
@@ -79,10 +81,12 @@ public final class Library {
     return new ArrayList<>(libraryFiles);
   }
 
+  /**
+   * @param libraryFiles artifacts associated with this library, cannot be <code>null</code>
+   */
   public void setLibraryFiles(List<LibraryFile> libraryFiles) {
-    if (libraryFiles != null) {
-      this.libraryFiles = new ArrayList<>(libraryFiles);
-    }
+    Preconditions.checkNotNull(libraryFiles);
+    this.libraryFiles = new ArrayList<>(libraryFiles);
   }
 
   public boolean isExport() {
@@ -97,9 +101,24 @@ public final class Library {
     return new ArrayList<>(libraryDependencies);
   }
 
+  /**
+   * @param libraryDependencies list of libraryIds that are dependencies of this library and should be added to the 
+   * classpath, cannot be <code>null</code>
+   */
   public void setLibraryDependencies(List<String> libraryDependencies) {
-    if (libraryDependencies != null) {
-      this.libraryDependencies = new ArrayList<>(libraryDependencies);
-    }
+    Preconditions.checkNotNull(libraryDependencies);
+    this.libraryDependencies = new ArrayList<>(libraryDependencies);
+  }
+
+  /**
+   * @param recommendation the level of recommendation for this library, cannot be <code>null</code>
+   */
+  public void setRecommendation(LibraryRecommendation recommendation) {
+    Preconditions.checkNotNull(recommendation);
+    this.recommendation = recommendation;
+  }
+
+  public LibraryRecommendation getRecommendation() {
+    return recommendation;
   }
 }
