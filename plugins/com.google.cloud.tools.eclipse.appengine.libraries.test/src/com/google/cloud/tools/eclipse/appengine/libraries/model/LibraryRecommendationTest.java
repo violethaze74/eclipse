@@ -14,15 +14,21 @@
  * limitations under the License.
  *******************************************************************************/
 
-package com.google.cloud.tools.eclipse.appengine.libraries.config;
+package com.google.cloud.tools.eclipse.appengine.libraries.model;
 
-public class LibraryFactoryException extends Exception {
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
 
-  public LibraryFactoryException(String message, Throwable cause) {
-    super(message, cause);
+import org.junit.Test;
+
+public class LibraryRecommendationTest {
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testValueOfWithLowerCase() {
+    LibraryRecommendation.valueOf("optional");
   }
 
-  public LibraryFactoryException(String message) {
-    super(message);
+  public void testValueOf_OPTIONAL() {
+    assertThat(LibraryRecommendation.valueOf("OPTIONAL"), is(LibraryRecommendation.OPTIONAL));
   }
 }
