@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Google Inc. All Rights Reserved.
+ * Copyright 2016 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -61,15 +61,22 @@ public class CreateMavenBasedAppEngineStandardProject extends WorkspaceModifyOpe
     if (appId == null || appId.trim().isEmpty()) {
       appId = artifactId;
     }
-    String appengineArtifactVersion = MavenUtils.resolveLatestReleasedArtifactVersion(progress.newChild(20),
-        "com.google.appengine", "appengine-api-1.0-sdk", "jar", AppEngineStandardFacet.DEFAULT_APPENGINE_SDK_VERSION);
-    String gcloudArtifactVersion = MavenUtils.resolveLatestReleasedArtifactVersion(progress.newChild(20),
-        "com.google.appengine", "gcloud-maven-plugin", "maven-plugin", AppEngineStandardFacet.DEFAULT_GCLOUD_PLUGIN_VERSION);
+    String appengineArtifactVersion = MavenUtils.resolveLatestReleasedArtifactVersion(
+        progress.newChild(20), "com.google.appengine", "appengine-api-1.0-sdk", "jar",
+        AppEngineStandardFacet.DEFAULT_APPENGINE_SDK_VERSION);
+    String gcloudArtifactVersion = MavenUtils.resolveLatestReleasedArtifactVersion(
+        progress.newChild(20), "com.google.appengine", "gcloud-maven-plugin", "maven-plugin",
+        AppEngineStandardFacet.DEFAULT_GCLOUD_PLUGIN_VERSION);
 
     Properties properties = new Properties();
     properties.put("appengine-version", appengineArtifactVersion);
     properties.put("gcloud-version", gcloudArtifactVersion);
     properties.put("application-id", appId);
+    properties.put("useJstl", "true");
+    properties.put("useObjectify", "false");
+    properties.put("useEndpoints1", "false");
+    properties.put("useEndpoints2", "false");
+    properties.put("useAppEngineApi", "false");
 
     ProjectImportConfiguration importConfiguration = new ProjectImportConfiguration();
     String packageName = this.packageName == null || this.packageName.isEmpty() 
