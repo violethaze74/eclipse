@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Google Inc. All Rights Reserved.
+ * Copyright 2016 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -56,7 +56,6 @@ public class MavenArchetypeProjectWizard extends Wizard implements INewWizard {
         AnalyticsEvents.APP_ENGINE_NEW_PROJECT_WIZARD_TYPE_MAVEN);
 
     final CreateMavenBasedAppEngineStandardProject operation = new CreateMavenBasedAppEngineStandardProject();
-    operation.setAppEngineProjectId(page.getAppEngineProjectId());
     operation.setPackageName(page.getPackageName());
     operation.setGroupId(page.getGroupId());
     operation.setArtifactId(page.getArtifactId());
