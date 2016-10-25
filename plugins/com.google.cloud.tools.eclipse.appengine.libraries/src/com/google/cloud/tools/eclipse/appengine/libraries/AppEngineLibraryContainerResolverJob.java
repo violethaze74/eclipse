@@ -33,6 +33,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.annotation.PostConstruct;
+import javax.inject.Inject;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IPath;
@@ -47,9 +49,6 @@ import org.eclipse.jdt.core.IClasspathEntry;
 import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.osgi.util.NLS;
-import org.osgi.framework.BundleContext;
-import org.osgi.framework.FrameworkUtil;
-import org.osgi.framework.ServiceReference;
 
 public class AppEngineLibraryContainerResolverJob extends Job {
   //TODO duplicate of com.google.cloud.tools.eclipse.appengine.libraries.AppEngineLibraryContainerInitializer.LIBRARIES_EXTENSION_POINT
@@ -58,25 +57,29 @@ public class AppEngineLibraryContainerResolverJob extends Job {
   private static final Logger logger = Logger.getLogger(AppEngineLibraryContainerResolverJob.class.getName());
 
   private Map<String, Library> libraries;
-  private final IJavaProject javaProject;
-  private LibraryClasspathContainerSerializer serializer;
-  private ServiceReference<ILibraryRepositoryService> serviceReference = null;
 
+  @Inject
+  private IJavaProject javaProject;
+  @Inject
   private ILibraryRepositoryService repositoryService;
+  @Inject
+  private LibraryClasspathContainerSerializer serializer;
 
-  public AppEngineLibraryContainerResolverJob(String name, IJavaProject javaProject) {
-    this(name, javaProject, new LibraryClasspathContainerSerializer());
+  public AppEngineLibraryContainerResolverJob() {
+    super(Messages.AppEngineLibraryContainerResolverJobName);
+    setUser(true);
   }
 
   @VisibleForTesting
-  AppEngineLibraryContainerResolverJob(String name, IJavaProject javaProject,
-                                       LibraryClasspathContainerSerializer serializer) {
-    super(name);
-    Preconditions.checkNotNull(javaProject, "javaProject is null"); //$NON-NLS-1$
+  AppEngineLibraryContainerResolverJob(LibraryClasspathContainerSerializer serializer) {
+    super(Messages.AppEngineLibraryContainerResolverJobName);
     Preconditions.checkNotNull(serializer);
-    this.javaProject = javaProject;
     this.serializer = serializer;
     setUser(true);
+  }
+
+  @PostConstruct
+  public void init() {
     setRule(javaProject.getSchedulingRule());
   }
 
@@ -91,9 +94,6 @@ public class AppEngineLibraryContainerResolverJob extends Job {
             RegistryFactory.getRegistry().getConfigurationElementsFor(LIBRARIES_EXTENSION_POINT);
         initializeLibraries(configurationElements, new LibraryFactory());
       }
-      serviceReference = lookupRepositoryServiceReference();
-      repositoryService = getBundleContext().getService(serviceReference);
-
       IClasspathEntry[] rawClasspath = javaProject.getRawClasspath();
       SubMonitor subMonitor = SubMonitor.convert(monitor,
                                                  Messages.TaskResolveLibraries,
@@ -103,8 +103,7 @@ public class AppEngineLibraryContainerResolverJob extends Job {
         String libraryId = classpathEntry.getPath().segment(1);
         Library library = libraries.get(libraryId);
         if (library != null) {
-          LibraryClasspathContainer container = resolveLibraryFiles(classpathEntry,
-                                                                    library, subMonitor.newChild(1));
+          LibraryClasspathContainer container = resolveLibraryFiles(classpathEntry, library, subMonitor.newChild(1));
           JavaCore.setClasspathContainer(classpathEntry.getPath(), new IJavaProject[] {javaProject},
                                          new IClasspathContainer[] {container}, null);
           serializer.saveContainer(javaProject, container);
@@ -112,15 +111,13 @@ public class AppEngineLibraryContainerResolverJob extends Job {
       }
     } catch (LibraryRepositoryServiceException | CoreException | IOException ex) {
       return StatusUtil.error(this, Messages.TaskResolveLibrariesError, ex);
-    } finally {
-      releaseRepositoryService();
     }
     return Status.OK_STATUS;
   }
 
   private LibraryClasspathContainer resolveLibraryFiles(IClasspathEntry classpathEntry,
                                                         Library library,
-                                                        IProgressMonitor monitor) 
+                                                        IProgressMonitor monitor)
                                                             throws LibraryRepositoryServiceException {
     List<LibraryFile> libraryFiles = library.getLibraryFiles();
     SubMonitor subMonitor = SubMonitor.convert(monitor, libraryFiles.size());
@@ -171,27 +168,6 @@ public class AppEngineLibraryContainerResolverJob extends Job {
       } catch (LibraryFactoryException exception) {
         logger.log(Level.SEVERE, "Failed to initialize libraries", exception); //$NON-NLS-1$
       }
-    }
-  }
-
-  private ServiceReference<ILibraryRepositoryService> lookupRepositoryServiceReference() {
-    BundleContext bundleContext = getBundleContext();
-    ServiceReference<ILibraryRepositoryService> serviceReference =
-        bundleContext.getServiceReference(ILibraryRepositoryService.class);
-    return serviceReference;
-  }
-
-  private void releaseRepositoryService() {
-    repositoryService = null;
-    getBundleContext().ungetService(serviceReference);
-  }
-
-  private BundleContext getBundleContext() {
-    BundleContext bundleContext = FrameworkUtil.getBundle(getClass()).getBundleContext();
-    if (bundleContext == null) {
-      throw new IllegalStateException(Messages.BundleContextNotFound); 
-    } else {
-      return bundleContext;
     }
   }
 }
