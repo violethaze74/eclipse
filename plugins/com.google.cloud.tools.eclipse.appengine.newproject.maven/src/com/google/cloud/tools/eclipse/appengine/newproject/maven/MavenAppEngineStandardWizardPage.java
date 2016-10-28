@@ -98,7 +98,7 @@ public class MavenAppEngineStandardWizardPage extends WizardPage {
     createLocationArea(container);
     createMavenCoordinatesArea(container);
     createAppEngineProjectDetailsArea(container);
-    appEngineLibrariesSelectorGroup = new AppEngineLibrariesSelectorGroup(this, container);
+    appEngineLibrariesSelectorGroup = new AppEngineLibrariesSelectorGroup(container);
 
     Dialog.applyDialogFont(container);
   }
