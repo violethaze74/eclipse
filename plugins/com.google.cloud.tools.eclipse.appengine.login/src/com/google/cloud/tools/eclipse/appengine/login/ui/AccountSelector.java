@@ -100,6 +100,11 @@ public class AccountSelector extends Composite {
     return index;
   }
 
+  public boolean isSignedIn() {
+    // <Add a new account...> is always in the combo
+    return combo.getItemCount() > 1;
+  }
+
   @VisibleForTesting
   class LogInOnSelect extends SelectionAdapter {
     @Override
