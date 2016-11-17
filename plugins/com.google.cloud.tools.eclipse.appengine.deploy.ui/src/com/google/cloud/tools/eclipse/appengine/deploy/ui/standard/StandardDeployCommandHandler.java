@@ -36,6 +36,13 @@ import org.eclipse.core.runtime.jobs.IJobChangeEvent;
 import org.eclipse.core.runtime.jobs.JobChangeAdapter;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.window.Window;
+import org.eclipse.ui.IWorkbenchPage;
+import org.eclipse.ui.IWorkbenchWindow;
+import org.eclipse.ui.PartInitException;
+import org.eclipse.ui.console.ConsolePlugin;
+import org.eclipse.ui.console.IConsoleConstants;
+import org.eclipse.ui.console.IConsoleManager;
+import org.eclipse.ui.console.IConsoleView;
 import org.eclipse.ui.console.MessageConsoleStream;
 import org.eclipse.ui.handlers.HandlerUtil;
 
@@ -142,6 +149,9 @@ public class StandardDeployCommandHandler extends AbstractHandler {
       }
     });
     deploy.schedule();
+    
+    IConsoleManager consoleManager = ConsolePlugin.getDefault().getConsoleManager();
+    consoleManager.showConsoleView(messageConsole);
   }
 
   private String getConsoleName(String project) {
