@@ -26,17 +26,17 @@ public class CloudSdkMissingPageTest {
   
   @Before
   public void setUp() {
-    page = new CloudSdkMissingPage();
+    page = new CloudSdkMissingPage("");
   }
   
   @Test
   public void testTitle() {
     Assert.assertEquals("Cloud SDK missing", page.getTitle());
   }
-  
+
   @Test
-  public void testDescription() {
-    Assert.assertEquals("Could not find the Google Cloud SDK", page.getDescription());
+  public void testErrorMessage() {
+    Assert.assertEquals("Could not find the Google Cloud SDK", page.getErrorMessage());
   }
 
 }
