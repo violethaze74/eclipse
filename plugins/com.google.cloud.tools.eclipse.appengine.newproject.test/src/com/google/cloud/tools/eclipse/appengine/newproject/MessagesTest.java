@@ -19,34 +19,13 @@ package com.google.cloud.tools.eclipse.appengine.newproject;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class AppEngineStandardWizardPageTest {
+public class MessagesTest {
 
-  private AppEngineStandardWizardPage page =
-      new AppEngineStandardWizardPage();
-  
   @Test
-  public void testPageInitiallyIncomplete() {
-    Assert.assertFalse(page.isPageComplete());
+  public void testNewAppEngineStandardProject() {
+    Assert.assertEquals(
+        "New App Engine Standard Project", 
+        Messages.getString("new.app.engine.standard.project"));
   }
-  
-  @Test
-  public void testGetNextPage() {
-    Assert.assertNull(page.getNextPage());
-  }
-  
-  @Test
-  public void testGetPreviousPage() {
-    Assert.assertNull(page.getPreviousPage());
-  }
-  
-  @Test
-  public void testTitle() {
-    Assert.assertEquals("App Engine Standard Project", page.getTitle());
-  }
-  
-  @Test
-  public void testDescription() {
-    Assert.assertEquals("Create a new App Engine Standard environment project in the workspace.", 
-        page.getDescription());
-  }
+
 }

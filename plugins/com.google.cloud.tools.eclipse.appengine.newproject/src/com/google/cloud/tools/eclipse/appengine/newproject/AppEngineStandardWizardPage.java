@@ -44,10 +44,8 @@ public class AppEngineStandardWizardPage extends WizardNewProjectCreationPage {
 
   public AppEngineStandardWizardPage() {
     super("basicNewProjectPage"); //$NON-NLS-1$
-    // todo instead of hard coding strings, read the wizard.name and wizard.description properties
-    // from plugins/com.google.cloud.tools.eclipse.appengine.newproject/plugin.properties
-    this.setTitle("App Engine Standard Project");
-    this.setDescription("Create a new App Engine Standard Project in the workspace.");
+    this.setTitle(Messages.getString("app.engine.standard.project")); //$NON-NLS-1$
+    this.setDescription(Messages.getString("create.app.engine.standard.project")); //$NON-NLS-1$
 
     this.setImageDescriptor(AppEngineImages.appEngine(64));
   }
@@ -67,7 +65,7 @@ public class AppEngineStandardWizardPage extends WizardNewProjectCreationPage {
 
     // Java package name
     Label packageNameLabel = new Label(container, SWT.NONE);
-    packageNameLabel.setText("Java package:");
+    packageNameLabel.setText(Messages.getString("java.package")); //$NON-NLS-1$
     javaPackageField = new Text(container, SWT.BORDER);
     GridData javaPackagePosition = new GridData(GridData.FILL_HORIZONTAL);
     javaPackagePosition.horizontalSpan = 2;
@@ -93,14 +91,16 @@ public class AppEngineStandardWizardPage extends WizardNewProjectCreationPage {
     String packageName = javaPackageField.getText();
     IStatus packageStatus = JavaPackageValidator.validate(packageName);
     if (!packageStatus.isOK()) {
-      setErrorMessage("Illegal package name: " + packageStatus.getMessage());
+      String message = Messages.getString("illegal.package.name",  //$NON-NLS-1$
+          packageStatus.getMessage());
+      setErrorMessage(message); 
       return false;
     }
 
     File parent = getLocationPath().toFile();
     File projectDirectory = new File(parent, getProjectName());
     if (projectDirectory.exists()) {
-      setErrorMessage("Project location already exists: " + projectDirectory);
+      setErrorMessage(Messages.getString("project.location.exists", projectDirectory)); //$NON-NLS-1$
       return false;
     }
 
