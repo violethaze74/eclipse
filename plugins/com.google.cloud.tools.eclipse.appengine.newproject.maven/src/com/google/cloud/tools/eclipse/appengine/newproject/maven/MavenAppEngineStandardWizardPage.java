@@ -55,6 +55,7 @@ import org.eclipse.swt.widgets.DirectoryDialog;
 import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Text;
+import org.eclipse.ui.PlatformUI;
 
 /**
  * UI to collect all information necessary to create a new Maven-based App Engine Standard Java
@@ -109,6 +110,9 @@ public class MavenAppEngineStandardWizardPage extends WizardPage {
     Composite container = new Composite(parent, SWT.NONE);
     GridLayoutFactory.swtDefaults().numColumns(2).applyTo(container);
     setControl(container);
+
+    PlatformUI.getWorkbench().getHelpSystem().setHelp(container,
+        "com.google.cloud.tools.eclipse.appengine.newproject.maven.NewMavenProjectContext"); //$NON-NLS-1$
 
     createLocationArea(container);
     createMavenCoordinatesArea(container);
@@ -307,11 +311,11 @@ public class MavenAppEngineStandardWizardPage extends WizardPage {
       } catch (FileAlreadyExistsException ex) {
           String message = Messages.getString("FILE_LOCATION", location); //$NON-NLS-1$
           page.setMessage(message, ERROR);
-          return false;  
+          return false;
       } catch (IOException ex) {
         String message = Messages.getString("INVALID_PATH", location); //$NON-NLS-1$
         page.setMessage(message, ERROR);
-        return false;  
+        return false;
       }
     }
   }
