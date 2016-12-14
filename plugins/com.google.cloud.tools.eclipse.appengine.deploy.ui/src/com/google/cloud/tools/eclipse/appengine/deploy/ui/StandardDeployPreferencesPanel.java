@@ -24,8 +24,6 @@ import com.google.cloud.tools.eclipse.ui.util.FontUtil;
 import com.google.cloud.tools.eclipse.ui.util.databinding.BucketNameValidator;
 import com.google.cloud.tools.eclipse.ui.util.databinding.ProjectIdInputValidator;
 import com.google.cloud.tools.eclipse.ui.util.databinding.ProjectVersionValidator;
-import com.google.cloud.tools.eclipse.ui.util.event.OpenUriSelectionListener;
-import com.google.cloud.tools.eclipse.ui.util.event.OpenUriSelectionListener.ErrorHandler;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
@@ -58,7 +56,6 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
-import org.eclipse.swt.widgets.Link;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.forms.events.ExpansionAdapter;
 import org.eclipse.ui.forms.events.ExpansionEvent;
@@ -70,9 +67,8 @@ public class StandardDeployPreferencesPanel extends DeployPreferencesPanel {
   private static final String APPENGINE_VERSIONS_URL =
       "https://console.cloud.google.com/appengine/versions";
 
-  private static final int INDENT_CHECKBOX_ENABLED_WIDGET = 10;
-
-  private static Logger logger = Logger.getLogger(DeployPropertyPage.class.getName());
+  private static final Logger logger = Logger.getLogger(
+      StandardDeployPreferencesPanel.class.getName());
 
   private AccountSelector accountSelector;
 
@@ -303,7 +299,7 @@ public class StandardDeployPreferencesPanel extends DeployPreferencesPanel {
     GridData layoutData = GridDataFactory.swtDefaults().create();
     overrideDefaultVersionButton.setLayoutData(layoutData);
 
-    version = new Text(versionComposite, SWT.LEFT | SWT.SINGLE | SWT.BORDER);
+    version = new Text(versionComposite, SWT.LEAD | SWT.SINGLE | SWT.BORDER);
     GridLayoutFactory.fillDefaults().numColumns(2).generateLayout(versionComposite);
   }
 
@@ -311,23 +307,8 @@ public class StandardDeployPreferencesPanel extends DeployPreferencesPanel {
     Composite promoteComposite = new Composite(this, SWT.NONE);
     autoPromoteButton = new Button(promoteComposite, SWT.CHECK);
     autoPromoteButton.setText(Messages.getString("auto.promote"));
-
-    final Link manualPromoteLink = new Link(promoteComposite, SWT.NONE);
-    GridData layoutData = GridDataFactory.swtDefaults().create();
-    layoutData.horizontalIndent = INDENT_CHECKBOX_ENABLED_WIDGET;
-    manualPromoteLink.setLayoutData(layoutData);
-    manualPromoteLink.setText(Messages.getString("deploy.manual.link", APPENGINE_VERSIONS_URL));
-    manualPromoteLink.setFont(promoteComposite.getFont());
-    manualPromoteLink.addSelectionListener(
-        new OpenUriSelectionListener(
-            new ProjectIdQueryParameterProvider(projectId), 
-            new ErrorHandler() {
-      @Override
-      public void handle(Exception ex) {
-        MessageDialog.openError(getShell(), 
-            Messages.getString("cannot.open.browser"), ex.getLocalizedMessage());
-      }
-    }));
+    String manualPromoteMessage = Messages.getString("deploy.manual.link", APPENGINE_VERSIONS_URL);
+    autoPromoteButton.setToolTipText(manualPromoteMessage);
 
     stopPreviousVersionButton = new Button(promoteComposite, SWT.CHECK);
     stopPreviousVersionButton.setText(Messages.getString("stop.previous.version"));
