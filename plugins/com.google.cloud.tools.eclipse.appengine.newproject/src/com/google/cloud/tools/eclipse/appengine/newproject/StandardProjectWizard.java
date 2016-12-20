@@ -77,6 +77,7 @@ public class StandardProjectWizard extends Wizard implements INewWizard {
       return true;
     }
 
+    config.setServiceName(page.getServiceName());
     config.setPackageName(page.getPackageName());
     config.setProject(page.getProjectHandle());
     if (!page.useDefaults()) {
