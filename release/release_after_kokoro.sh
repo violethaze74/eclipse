@@ -24,6 +24,10 @@ die() {
 [ ! -x "$ECLIPSE_HOME/eclipse" ] && \
     die "'$ECLIPSE_HOME/eclipse' is not an executable. Halting."
 
+if ! $(command -v xmllint >/dev/null); then
+    die "Cannot find xmllint. Halting."
+fi
+
 WORK_DIR=$HOME/CT4E_release_work
 SIGNED_DIR=$WORK_DIR/signed
 LOCAL_REPO=$WORK_DIR/repository
@@ -127,10 +131,11 @@ ask_proceed
 ###############################################################################
 echo
 echo "#"
-echo "# Run Eclipse from the command line to generate the following files:"
+echo "# Run Eclipse from the command line to generate a new p2 repository from"
+echo "# the signed artifacts:"
 echo "#"
-echo "#     $LOCAL_REPO/artifacts.xml"
-echo "#     $LOCAL_REPO/content.xml"
+echo "#     $LOCAL_REPO/artifacts.jar"
+echo "#     $LOCAL_REPO/content.jar"
 echo "#     $LOCAL_REPO/features/*"
 echo "#     $LOCAL_REPO/plugins/*"
 echo "#"
@@ -144,52 +149,80 @@ $ECLIPSE_HOME/eclipse -nosplash -consolelog \
     -artifactRepositoryName 'Google Cloud Tools for Eclipse' \
     -artifactRepository file:$LOCAL_REPO \
     -source $SIGNED_DIR \
-    -publishArtifacts
+    -publishArtifacts \
+    -compress
 set +x
 
-if [ ! -e "$LOCAL_REPO/artifacts.xml" -o ! -e "$LOCAL_REPO/content.xml" ]; then
+if [ ! -e "$LOCAL_REPO/artifacts.jar" -o ! -e "$LOCAL_REPO/content.jar" ]; then
     die "The files have not been generated. Halting."
 fi
 
 ###############################################################################
 echo
 echo "#"
-echo "# Copy 'gs://gcloud-for-eclipse-testing/category.xml'"
+echo "# Copy 'gs://gcloud-for-eclipse-testing/metadata.{product,p2.inf}'"
 echo "# into '$WORK_DIR'."
 echo "#"
 ask_proceed
 
 set -x
-gsutil cp gs://gcloud-for-eclipse-testing/category.xml $WORK_DIR
+# note that the metadata.p2.inf is renamed p2.inf as required for the p2 ProductPublisher
+gsutil cp gs://gcloud-for-eclipse-testing/metadata.product $WORK_DIR
+gsutil cp gs://gcloud-for-eclipse-testing/metadata.p2.inf $WORK_DIR/p2.inf
 set +x
 
-if [ ! -e "$WORK_DIR/category.xml" ]; then
-    die "The file was not copied. Halting."
+if [ ! -e "$WORK_DIR/metadata.product" -o ! -e "$WORK_DIR/p2.inf" ]; then
+    die "The files were not copied. Halting."
 fi
 
 ###############################################################################
 echo
 echo "#"
-echo "# Run org.eclipse.equinox.p2.publisher.CategoryPublisher."
+echo "# Run org.eclipse.equinox.p2.publisher.ProductPublisher to add any"
+echo "# additional p2 metadata for the CT4E repository:"
+echo "#   - copyright and license have been associated with our public feature"
+echo "# Verify using xmllint."
 echo "#"
 ask_proceed
 
 set -x
 $ECLIPSE_HOME/eclipse \
     -nosplash -console -consolelog \
-    -application org.eclipse.equinox.p2.publisher.CategoryPublisher \
+    -application org.eclipse.equinox.p2.publisher.ProductPublisher \
     -metadataRepository file:$LOCAL_REPO \
-    -categoryDefinition file:$WORK_DIR/category.xml \
-    -categoryQualifier
+    -productFile $WORK_DIR/metadata.product \
+    -flavor tooling \
+    -append \
+    -compress
 set +x
+
+# Validate license and copyright
+repoName="Google Cloud Tools for Eclipse"
+categoryId=com.google.cloud.tools.eclipse.category
+featureId=com.google.cloud.tools.eclipse.suite.e45.feature.feature.group
+copyrightText="Copyright 2016, 2017 Google Inc."
+licenseUri=https://www.apache.org/licenses/LICENSE-2.0
+licenseText="Cloud Tools for Eclipse is made available under the Apache\
+ License, Version 2.0. Please visit the following URL for details:\
+ https://www.apache.org/licenses/LICENSE-2.0"
+categoryXPathExpr="/repository[@name='$repoName']/units/unit[@id='$categoryId']"
+
+valid=$(unzip -p $LOCAL_REPO/content.jar \
+  | xmllint --xpath \
+    "normalize-space(${categoryXPathExpr}/copyright)='$copyrightText' \
+        and normalize-space(${categoryXPathExpr}/licenses[@size=1]/license[@uri='$licenseUri'])='$licenseText' \
+        and ${categoryXPathExpr}/requires[@size='1']/required/@name='$featureId'" -)
+if [ "$valid" != "true" ]; then
+    die "$featureId is missing the copyright and license metadata. Halting."
+fi
 
 ###############################################################################
 echo
 echo "#"
 echo "# Upload the following newly created files"
 echo "#"
-echo "#     $LOCAL_REPO/artifacts.xml"
-echo "#     $LOCAL_REPO/content.xml"
+echo "#     $LOCAL_REPO/artifacts.jar"
+echo "#     $LOCAL_REPO/content.jar"
 echo "#     $LOCAL_REPO/features/*"
 echo "#     $LOCAL_REPO/plugins/*"
 echo "#"
@@ -200,7 +233,7 @@ read VERSION
 ask_proceed
 
 set -x
-gsutil cp $LOCAL_REPO/artifacts.xml $LOCAL_REPO/content.xml \
+gsutil cp $LOCAL_REPO/artifacts.jar $LOCAL_REPO/content.jar \
     gs://cloud-tools-for-eclipse/$VERSION/ && \
 gsutil -m cp -R $LOCAL_REPO/features $LOCAL_REPO/plugins \
     gs://cloud-tools-for-eclipse/$VERSION/
