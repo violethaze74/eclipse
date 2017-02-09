@@ -16,6 +16,7 @@
 
 package com.google.cloud.tools.eclipse.test.util;
 
+import com.google.cloud.tools.eclipse.test.util.reflection.ReflectionUtil;
 import com.google.common.base.Stopwatch;
 import java.lang.Thread.State;
 import java.lang.management.LockInfo;
@@ -28,6 +29,9 @@ import java.util.Comparator;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
+import org.eclipse.core.internal.jobs.JobManager;
+import org.eclipse.core.internal.jobs.LockManager;
+import org.eclipse.core.runtime.jobs.Job;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
@@ -38,15 +42,20 @@ import org.junit.runners.model.Statement;
 public class ThreadDumpingWatchdog extends TimerTask implements TestRule {
   private final long period;
   private final TimeUnit unit;
-  private final boolean ignoreUselessThreads = true;
+  private final boolean ignoreUselessThreads;
 
   private Description description;
   private Timer timer;
   private Stopwatch stopwatch;
 
   public ThreadDumpingWatchdog(long period, TimeUnit unit) {
+    this(period, unit, true);
+  }
+
+  public ThreadDumpingWatchdog(long period, TimeUnit unit, boolean ignoreUselessThreads) {
     this.period = period;
     this.unit = unit;
+    this.ignoreUselessThreads = ignoreUselessThreads;
   }
 
   @Override
@@ -112,14 +121,62 @@ public class ThreadDumpingWatchdog extends TimerTask implements TestRule {
         }
       }
     }
+    dumpEclipseLocks(sb, "| ");
     sb.append("\n+-------------------------------------------------------------------------------");
     System.err.println(sb.toString());
+  }
+
+  /**
+   * Attempt to obtain the Eclipse Lock Manager debug output. The output represents a matrix where
+   * the columns are the allocated locks and the rows correspond to the threads and their interest
+   * in the locks.
+   * 
+   * <pre>
+   * Eclipse Locks:
+   *  :: 
+   *  R/, OrderedLock (4),
+   *  ModalContext :  1, 0,
+   *  Worker-4 :  0, 1,
+   *  Worker-3 :  -1, 0,
+   *  -------
+   * </pre>
+   * 
+   * The first row following "::" lists the locks. A lock is either an
+   * {@link org.eclipse.core.runtime.jobs.ISchedulingRule ISchedulingRule} or an explicit
+   * {@link org.eclipse.core.runtime.jobs.ILock ILock}. Each subsequent row lists the relationships
+   * between a thread and its acquired locks (&gt; 0), the locks it is waiting to acquire (-1), or
+   * has no relationship (0). In the above, the workspace root ({@code R/}) has been acquired by
+   * <em>ModalContext</em> but <em>Worker-3</em> would like to acquire it, and <em>Worker-4</em> has
+   * acquired <em>ILock #4</em>.
+   * 
+   * @see org.eclipse.core.internal.jobs.DeadlockDetector
+   */
+  private void dumpEclipseLocks(StringBuilder sb, String linePrefix) {
+    try {
+      // Unfortunately this is not exposed in a nice manner
+      LockManager manager = ((JobManager) Job.getJobManager()).getLockManager();
+      if (manager.isEmpty()) {
+        // don't output anything if no locks are held
+        return;
+      }
+      // locks is an instance of DeadlockDetector
+      Object locks = ReflectionUtil.getField(manager, "locks", Object.class);
+      String debugOutput = ReflectionUtil.invoke(locks, "toDebugString", String.class);
+      sb.append("\n").append(linePrefix);
+      sb.append("\n").append(linePrefix).append("Eclipse Locks:");
+      sb.append("\n").append(linePrefix).append(debugOutput.replace("\n", "\n" + linePrefix));
+    } catch (SecurityException | IllegalArgumentException | ReflectiveOperationException ex) {
+      sb.append("\n").append(linePrefix).append("Eclipse Lock information not available");
+    }
   }
 
   /**
    * Identify useless threads, like idle worker pool threads.
    */
   private boolean isUselessThread(ThreadInfo tinfo) {
+    if (!ignoreUselessThreads) {
+      return false;
+    }
     String threadName = tinfo.getThreadName();
     if (tinfo.getThreadState() == State.TIMED_WAITING && tinfo.getLockInfo() != null) {
       String lockClassName = tinfo.getLockInfo().getClassName();
