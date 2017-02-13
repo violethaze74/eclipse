@@ -16,10 +16,20 @@
 
 package com.google.cloud.tools.eclipse.projectselector;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
+
 import org.junit.Test;
 
-public class DummyTest {
+public class MessagesTest {
+
   @Test
-  public void test() {
+  public void testProjectSelectorHeaderName() {
+    assertThat(Messages.getString("projectselector.header.name"), is("Name"));
+  }
+
+  @Test
+  public void testName() {
+    assertThat(Messages.getString("projectselector.header.id"), is("ID"));
   }
 }
