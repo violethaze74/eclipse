@@ -96,6 +96,7 @@ public class AppEngineWebXmlValidatorTest {
     IMarker[] markers = resource.findMarkers(MARKER_TYPE, true, IResource.DEPTH_ZERO);
     assertEquals(1, markers.length);
     assertEquals(ELEMENT_MESSAGE, (String) markers[0].getAttribute(IMarker.MESSAGE));
+    assertEquals("line 1", markers[0].getAttribute(IMarker.LOCATION));
   }
   
   @Test
