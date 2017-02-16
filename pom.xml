@@ -44,6 +44,8 @@
     <module>plugins/com.google.cloud.tools.eclipse.appengine.facets.test</module>
     <module>plugins/com.google.cloud.tools.eclipse.appengine.libraries</module>
     <module>plugins/com.google.cloud.tools.eclipse.appengine.libraries.test</module>
+    <module>plugins/com.google.cloud.tools.eclipse.appengine.libraries.ui</module>
+    <module>plugins/com.google.cloud.tools.eclipse.appengine.libraries.ui.test</module>
     <module>plugins/com.google.cloud.tools.eclipse.appengine.localserver</module>
     <module>plugins/com.google.cloud.tools.eclipse.appengine.localserver.test</module>
     <module>plugins/com.google.cloud.tools.eclipse.login</module>
