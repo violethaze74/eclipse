@@ -45,7 +45,7 @@ public class AppEngineWebXmlValidatorTest {
   private static final String XML = "<application></application>";
   private static final String BAD_XML = "<";
   private static final String ELEMENT_NAME = "application";
-  private static final String ELEMENT_MESSAGE = "Project ID should be specified at deploy time.";
+  private static final String ELEMENT_MESSAGE = "Project ID should be specified at deploy time";
   private static final String MARKER_TYPE = "org.eclipse.core.resources.problemmarker";
   private static IResource resource;
   private static IProject project;
