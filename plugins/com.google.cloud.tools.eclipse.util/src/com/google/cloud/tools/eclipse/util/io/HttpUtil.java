@@ -31,7 +31,7 @@ public class HttpUtil {
   public static final int DEFAULT_CONNECT_TIMEOUT_MS = 3000;
   public static final int DEFAULT_READ_TIMEOUT_MS = 3000;
 
-  public static void sendPost(String urlString, Map<String, String> parameters) throws IOException {
+  public static int sendPost(String urlString, Map<String, String> parameters) throws IOException {
     String parametersString = getParametersString(parameters);
 
     HttpURLConnection connection = null;
@@ -51,6 +51,7 @@ public class HttpUtil {
         out.write(bytesToWrite);
         out.flush();
       }
+      return connection.getResponseCode();
     } finally {
       if (connection != null) {
         connection.disconnect();
