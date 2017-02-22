@@ -14,19 +14,17 @@
  * limitations under the License.
  */
 
-package com.google.cloud.tools.eclipse.projectselector;
+package com.google.cloud.tools.eclipse.projectselector.model;
 
-public class ProjectRepositoryException extends Exception {
-
-  public ProjectRepositoryException(Exception ex) {
-    super(ex);
+public class AppEngine {
+  public static AppEngine NO_APPENGINE_APPLICATION = new AppEngine(null);
+  private String id;
+  
+  private AppEngine(String id) {
+    this.id = id;
   }
 
-  public ProjectRepositoryException(String reason) {
-    super(reason);
-  }
-
-  public ProjectRepositoryException(String reason, Throwable cause) {
-    super(reason, cause);
+  public static AppEngine withId(String id) {
+    return new AppEngine(id);
   }
 }
