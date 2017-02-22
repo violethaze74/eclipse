@@ -37,13 +37,14 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import com.google.cloud.tools.eclipse.test.util.project.TestProjectCreator;
 
-public class AppEngineWebXmlValidatorTest {
+public class WebXmlValidatorTest {
 
-  private static final String XML_NO_BANNED_ELEMENTS = "<test></test>";
-  private static final String XML = "<application></application>";
-  private static final String BAD_XML = "<";
-  private static final String APPLICATION_MARKER =
-      "com.google.cloud.tools.eclipse.appengine.validation.blacklistMarker";
+  private static final String XML = "<web-app xmlns='http://xmlns.jcp.org/xml/ns/javaee'"
+      + " version='3.1'></web-app>";
+  private static final String ELEMENT_MESSAGE =
+      "App Engine Standard does not support this servlet version";
+  private static final String SERVLET_MARKER =
+      "com.google.cloud.tools.eclipse.appengine.validation.servletMarker";
   private static IResource resource;
   private static IProject project;
   
@@ -65,41 +66,16 @@ public class AppEngineWebXmlValidatorTest {
       resource.deleteMarkers(IMarker.PROBLEM, true, IResource.DEPTH_ZERO);
     }
   }
-  
-  @Test
-  public void testValidate_badXml()
-      throws IOException, CoreException, ParserConfigurationException {
-    byte[] bytes = BAD_XML.getBytes(StandardCharsets.UTF_8);
-    AppEngineWebXmlValidator validator = new AppEngineWebXmlValidator();
-    validator.validate(resource, bytes);
-    String problemMarker = "org.eclipse.core.resources.problemmarker";
-    IMarker[] markers = resource.findMarkers(problemMarker, true, IResource.DEPTH_ZERO);
-    String resultMessage = (String) markers[0].getAttribute(IMarker.MESSAGE);
-    assertEquals("XML document structures must start and end within the same entity.",
-        resultMessage);
-  }
-  
-  @Test
-  public void testValidate_noBannedElements()
-      throws IOException, CoreException, ParserConfigurationException {
-    byte[] bytes = XML_NO_BANNED_ELEMENTS.getBytes(StandardCharsets.UTF_8);
-    AppEngineWebXmlValidator validator = new AppEngineWebXmlValidator();
-    validator.validate(resource, bytes);
-    IMarker[] markers = resource.findMarkers(APPLICATION_MARKER, true, IResource.DEPTH_ZERO);
-    assertEquals(0, markers.length);
-  }
 
   @Test
-  public void testValidate_withBannedElements()
+  public void testValidate_withWrongVersion()
       throws IOException, CoreException, ParserConfigurationException {
     byte[] bytes = XML.getBytes(StandardCharsets.UTF_8);
-    AppEngineWebXmlValidator validator = new AppEngineWebXmlValidator();
+    WebXmlValidator validator = new WebXmlValidator();
     validator.validate(resource, bytes);
-    IMarker[] markers = resource.findMarkers(APPLICATION_MARKER, true, IResource.DEPTH_ZERO);
+    IMarker[] markers = resource.findMarkers(SERVLET_MARKER, true, IResource.DEPTH_ZERO);
     assertEquals(1, markers.length);
-    String message = Messages.getString("application.element");
-    assertEquals(message, (String) markers[0].getAttribute(IMarker.MESSAGE));
-    assertEquals("line 1", markers[0].getAttribute(IMarker.LOCATION));
+    assertEquals(ELEMENT_MESSAGE, (String) markers[0].getAttribute(IMarker.MESSAGE));
   }
   
   private static void createFolders(IContainer parent, IPath path) throws CoreException {

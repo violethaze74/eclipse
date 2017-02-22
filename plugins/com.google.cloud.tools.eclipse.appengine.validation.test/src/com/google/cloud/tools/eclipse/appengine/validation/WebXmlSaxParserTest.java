@@ -25,23 +25,24 @@ import javax.xml.parsers.ParserConfigurationException;
 import org.junit.Test;
 import org.xml.sax.SAXException;
 
-public class BlacklistSaxParserTest {
+public class WebXmlSaxParserTest {
   
   @Test
   public void testReadXml_emptyXml()
       throws ParserConfigurationException, IOException, SAXException {
     String emptyXml = "";
     byte[] bytes = emptyXml.getBytes(StandardCharsets.UTF_8);
-    assert(BlacklistSaxParser.readXml(bytes).getBlacklist().isEmpty());
+    assert(WebXmlSaxParser.readXml(bytes).getBlacklist().isEmpty());
   }
   
   @Test
-  public void testReadXml_xmlWithBannedElement()
+  public void testReadXml_xmlWithWrongVersion()
       throws ParserConfigurationException, IOException, SAXException {
-    String xml = "<application></application>";
+    String xml = "<web-app xmlns='http://xmlns.jcp.org/xml/ns/javaee'"
+        + " version='3.1'></web-app>";
     byte[] bytes = xml.getBytes(StandardCharsets.UTF_8);
-    Queue<BannedElement> blacklist = BlacklistSaxParser.readXml(bytes).getBlacklist();
-    String message = "Project ID should be specified at deploy time";
+    Queue<BannedElement> blacklist = WebXmlSaxParser.readXml(bytes).getBlacklist();
+    String message = "App Engine Standard does not support this servlet version";
     assertEquals(blacklist.poll().getMessage(), message);
   }
 

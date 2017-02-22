@@ -21,22 +21,25 @@ import org.xml.sax.SAXException;
 import org.xml.sax.ext.Locator2;
 
 /**
- * Adds blacklisted start element to queue. Adding 2 to length accounts
- * for the start and end angle brackets of the tag.
+ * Adds <web-app> element to {@link BannedElement} queue if the Servlet version is not 2.5.
  */
-class BlacklistScanner extends AbstractScanner {
+class WebXmlScanner extends AbstractScanner {
 
   @Override
   public void startElement(String uri, String localName, String qName, Attributes attributes)
       throws SAXException {
-    Locator2 locator = getLocator();
-    if (AppEngineWebBlacklist.contains(qName)) {
-      DocumentLocation start = new DocumentLocation(locator.getLineNumber(),
-          locator.getColumnNumber() - qName.length() - 2);
-      String message = AppEngineWebBlacklist.getBlacklistElementMessage(qName);
-      BannedElement element = new BannedElement(message, start, qName.length() + 2);
-      addToBlacklist(element);
+    // Checks for expected namespace URI. Assume something else is going on if
+    // web.xml has an unexpected root namespace.
+    if ("web-app".equalsIgnoreCase(localName) && ("http://xmlns.jcp.org/xml/ns/javaee".equals(uri)
+        || "http://java.sun.com/xml/ns/javaee".equals(uri))) {
+      String version = attributes.getValue("version");
+      if (!version.equals("2.5")) {
+        Locator2 locator = getLocator();
+        DocumentLocation start = new DocumentLocation(locator.getLineNumber(),
+            locator.getColumnNumber());
+        addToBlacklist(new BannedElement(Messages.getString("web.xml.version"), start, 0));
+      }
     }
   }
-    
+  
 }

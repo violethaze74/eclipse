@@ -27,7 +27,7 @@ import org.xml.sax.helpers.XMLReaderFactory;
 /**
  * Retrieves and returns the results of the SAX parser.
  */
-class BlacklistSaxParser {
+class WebXmlSaxParser {
   
   static SaxParserResults readXml(byte[] bytes)
       throws ParserConfigurationException, IOException, SAXException {
@@ -37,7 +37,7 @@ class BlacklistSaxParser {
     ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
     InputSource is = new InputSource(bais);
     XMLReader reader = XMLReaderFactory.createXMLReader();
-    BlacklistScanner handler = new BlacklistScanner();
+    WebXmlScanner handler = new WebXmlScanner();
     
     reader.setContentHandler(handler);
     reader.setErrorHandler(handler);
