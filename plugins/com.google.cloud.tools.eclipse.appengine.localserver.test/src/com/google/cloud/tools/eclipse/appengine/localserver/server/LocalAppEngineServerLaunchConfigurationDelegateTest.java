@@ -26,6 +26,7 @@ import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -37,6 +38,7 @@ import java.net.ServerSocket;
 import java.util.Arrays;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.debug.core.ILaunch;
 import org.eclipse.debug.core.ILaunchConfiguration;
 import org.eclipse.jdt.launching.IJavaLaunchConfigurationConstants;
 import org.eclipse.wst.server.core.IServer;
@@ -274,5 +276,16 @@ public class LocalAppEngineServerLaunchConfigurationDelegateTest {
     assertEquals(Arrays.asList("a", "b", "c d"), config.getJvmFlags());
     verify(launchConfiguration)
         .getAttribute(eq(IJavaLaunchConfigurationConstants.ATTR_VM_ARGUMENTS), anyString());
+  }
+
+  // https://github.com/GoogleCloudPlatform/google-cloud-eclipse/issues/1609
+  @Test
+  public void testLaunch_noNullPointerExceptionWhenLaunchHasNoConfiguration() throws CoreException {
+    ILaunch launch = mock(ILaunch.class);
+    ILaunch[] launches = new ILaunch[] {launch};
+    when(launch.getLaunchConfiguration()).thenReturn(null);
+
+    new LocalAppEngineServerLaunchConfigurationDelegate()
+        .checkConflictingLaunches(null, mock(DefaultRunConfiguration.class), launches);
   }
 }
