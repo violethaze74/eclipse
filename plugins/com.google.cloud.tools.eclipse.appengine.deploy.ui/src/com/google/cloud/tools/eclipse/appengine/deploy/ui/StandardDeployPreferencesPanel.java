@@ -132,7 +132,7 @@ public class StandardDeployPreferencesPanel extends DeployPreferencesPanel {
 
     this.projectRepository = projectRepository;
 
-    refreshIcon = SharedImages.createRefreshIcon(getDisplay());
+    refreshIcon = SharedImages.REFRESH_IMAGE_DESCRIPTOR.createImage(getDisplay());
 
     createCredentialSection(loginService);
 
