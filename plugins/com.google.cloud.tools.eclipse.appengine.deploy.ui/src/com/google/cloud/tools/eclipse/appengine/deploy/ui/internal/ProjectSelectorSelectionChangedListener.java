@@ -31,7 +31,6 @@ import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.jface.viewers.ISelectionChangedListener;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.viewers.SelectionChangedEvent;
-import org.eclipse.swt.widgets.Display;
 
 public class ProjectSelectorSelectionChangedListener implements ISelectionChangedListener {
 
@@ -82,10 +81,8 @@ public class ProjectSelectorSelectionChangedListener implements ISelectionChange
       }
     } else {  // The project has never been queried.
       Credential credential = accountSelector.getSelectedCredential();
-      Display display = projectSelector.getDisplay();
-
       latestQueryJob = new AppEngineApplicationQueryJob(project, credential, projectRepository,
-          projectSelector, createAppLink, isLatestQueryJob, display);
+          projectSelector, createAppLink, isLatestQueryJob);
       latestQueryJob.schedule();
     }
   }
