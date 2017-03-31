@@ -102,6 +102,8 @@ public class StandardDeployPreferencesPanel extends DeployPreferencesPanel {
 
   private Button stopPreviousVersionButton;
 
+  private Button includeOptionalConfigurationFilesButton;
+
   private Text bucket;
 
   private ExpandableComposite expandableComposite;
@@ -141,6 +143,8 @@ public class StandardDeployPreferencesPanel extends DeployPreferencesPanel {
 
     createPromoteSection();
 
+    createOptionalConfigurationFilesSection();
+
     createAdvancedSection();
 
     Dialog.applyDialogFont(this);
@@ -159,6 +163,7 @@ public class StandardDeployPreferencesPanel extends DeployPreferencesPanel {
     setupProjectSelectorDataBinding(bindingContext);
     setupProjectVersionDataBinding(bindingContext);
     setupAutoPromoteDataBinding(bindingContext);
+    setupOptionalConfigurationFilesDataBinding(bindingContext);
     setupBucketDataBinding(bindingContext);
 
     observables = new ObservablesManager();
@@ -276,6 +281,15 @@ public class StandardDeployPreferencesPanel extends DeployPreferencesPanel {
         return currentValue;  // Otherwise, retain the latest (current) user choice.
       }
     }, stopPreviousVersionModel, null, new UpdateValueStrategy(UpdateValueStrategy.POLICY_NEVER));
+  }
+
+  private void setupOptionalConfigurationFilesDataBinding(DataBindingContext context) {
+    ISWTObservableValue buttonValue =
+        WidgetProperties.selection().observe(includeOptionalConfigurationFilesButton);
+    IObservableValue modelValue =
+        PojoProperties.value("includeOptionalConfigurationFiles").observe(model);
+
+    context.bindValue(buttonValue, modelValue);
   }
 
   private void setupBucketDataBinding(DataBindingContext context) {
@@ -405,6 +419,16 @@ public class StandardDeployPreferencesPanel extends DeployPreferencesPanel {
         new GridData(SWT.BEGINNING, SWT.CENTER, false, false);
     stopPreviousVersionButtonGridData.horizontalSpan = 2;
     stopPreviousVersionButton.setLayoutData(stopPreviousVersionButtonGridData);
+  }
+
+  private void createOptionalConfigurationFilesSection() {
+    includeOptionalConfigurationFilesButton = new Button(this, SWT.CHECK);
+    includeOptionalConfigurationFilesButton.setText(Messages.getString("deploy.config.files"));
+    includeOptionalConfigurationFilesButton.setToolTipText(
+        Messages.getString("tooltip.deploy.config.files"));
+    GridData gridData = new GridData(SWT.BEGINNING, SWT.CENTER, false, false);
+    gridData.horizontalSpan = 2;
+    includeOptionalConfigurationFilesButton.setLayoutData(gridData);
   }
 
   private void createAdvancedSection() {
