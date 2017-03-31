@@ -17,17 +17,24 @@
 package com.google.cloud.tools.eclipse.appengine.validation;
 
 import com.google.cloud.tools.eclipse.appengine.facets.AppEngineStandardFacet;
+import com.google.cloud.tools.eclipse.util.status.StatusUtil;
+import com.google.common.annotations.VisibleForTesting;
+
 import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import javax.xml.parsers.ParserConfigurationException;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.IConfigurationElement;
+import org.eclipse.core.runtime.IExecutableExtension;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.jface.text.IDocument;
@@ -44,16 +51,19 @@ import org.eclipse.wst.validation.internal.provisional.core.IMessage;
 import org.eclipse.wst.validation.internal.provisional.core.IReporter;
 import org.eclipse.wst.validation.internal.provisional.core.IValidationContext;
 import org.eclipse.wst.validation.internal.provisional.core.IValidator;
+import org.w3c.dom.Document;
+import org.xml.sax.SAXException;
 
 /**
- * Abstract source view validator.
+ * Contains the logic for source validation and message creation.
  */
-public abstract class AbstractXmlSourceValidator implements ISourceValidator, IValidator {
+public class XmlSourceValidator implements ISourceValidator, IValidator, IExecutableExtension {
   
   private static final Logger logger = Logger.getLogger(
-      AbstractXmlSourceValidator.class.getName());
+      XmlSourceValidator.class.getName());
   
   private IDocument document;
+  private XmlValidationHelper helper;
   
   /**
    * Validates a given {@link IDocument} if the project has the App Engine Standard facet.
@@ -68,7 +78,7 @@ public abstract class AbstractXmlSourceValidator implements ISourceValidator, IV
         IFile source = getFile(helper);
         this.validate(reporter, source, bytes);
       }
-    } catch (IOException | CoreException | ParserConfigurationException ex) {
+    } catch (IOException | CoreException ex) {
       logger.log(Level.SEVERE, ex.getMessage());
     }
   }
@@ -77,17 +87,60 @@ public abstract class AbstractXmlSourceValidator implements ISourceValidator, IV
    * Adds an {@link IMessage} to the XML file for every 
    * {@link BannedElement} found in the file.
    */
-  protected abstract void validate(IReporter reporter, IFile source, byte[] bytes) 
-      throws CoreException, IOException, ParserConfigurationException;
+  void validate(IReporter reporter, IFile source, byte[] bytes) throws CoreException, IOException {
+    try {
+      Document document = PositionalXmlScanner.parse(bytes);
+      if (document != null) {
+        ArrayList<BannedElement> blacklist = helper.checkForElements(source, document);
+        String encoding = (String) document.getDocumentElement().getUserData("encoding");
+        Map<BannedElement, Integer> bannedElementOffsetMap =
+            ValidationUtils.getOffsetMap(bytes, blacklist, encoding);
+        for (Map.Entry<BannedElement, Integer> entry : bannedElementOffsetMap.entrySet()) {
+          createMessage(reporter, entry.getKey(), entry.getValue());
+        }
+      }
+    } catch (SAXException ex) {
+      // Do nothing
+      // Default Eclipse parser flags syntax errors
+    }
+  }
   
+  /**
+   * Creates an instance of the helper {@link XmlValidationHelper} and sets its 
+   * own helper to this instance.
+   */
+  @Override
+  public void setInitializationData(IConfigurationElement config, String propertyName, Object data)
+      throws CoreException {
+    try {
+      if (data == null || !(data instanceof String)) {
+        throw new CoreException(StatusUtil.error(getClass(), "Data must be a class name"));
+      }
+      String className = (String) data;
+      Class<?> clazz = Class.forName(className);
+      Constructor<?> constructor = clazz.getConstructor();
+      XmlValidationHelper helper = (XmlValidationHelper) constructor.newInstance(new Object[] {});
+      this.setHelper(helper);
+    } catch (ClassNotFoundException | NoSuchMethodException | SecurityException 
+        | InstantiationException | IllegalAccessException | IllegalArgumentException
+        | InvocationTargetException ex) {
+      logger.log(Level.SEVERE, ex.getMessage());
+    }
+  }
+  
+  @VisibleForTesting
+  void setHelper(XmlValidationHelper helper) {
+    this.helper = helper;
+  }
+
   /**
    * Creates a message from a given {@link BannedElement}.
    */
-  void createMessage(IReporter reporter, BannedElement element, int elementOffset,
-      String markerId, int severity) throws CoreException {
-    IMessage message = new LocalizedMessage(severity, element.getMessage());
+  void createMessage(IReporter reporter, BannedElement element, int elementOffset)
+      throws CoreException {
+    IMessage message = new LocalizedMessage(element.getIMessageSeverity(), element.getMessage());
     message.setTargetObject(this);
-    message.setMarkerId(markerId);
+    message.setMarkerId(element.getMarkerId());
     message.setLineNo(element.getStart().getLineNumber());
     message.setOffset(elementOffset);
     message.setLength(element.getLength());

@@ -19,6 +19,9 @@ package com.google.cloud.tools.eclipse.appengine.validation;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+
 import com.google.cloud.tools.eclipse.appengine.facets.AppEngineStandardFacet;
 import com.google.cloud.tools.eclipse.test.util.project.TestProjectCreator;
 
@@ -39,8 +42,13 @@ import org.junit.Test;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 
-public class AbstractXmlValidatorTest {
+public class XmlValidatorTest {
 
+  private static final String XML_NO_BANNED_ELEMENTS = "<test></test>";
+  private static final String XML = "<application></application>";
+  private static final String BAD_XML = "<";
+  private static final String APPLICATION_MARKER =
+      "com.google.cloud.tools.eclipse.appengine.validation.appEngineBlacklistMarker";
   private static final IProjectFacetVersion APPENGINE_STANDARD_FACET_VERSION_1 =
       ProjectFacetsManager.getProjectFacet(AppEngineStandardFacet.ID).getVersion("1");
   private IFile resource;
@@ -86,12 +94,50 @@ public class AbstractXmlValidatorTest {
   }
   
   @Test
+  public void testValidate_badXml() throws IOException, CoreException {
+    byte[] bytes = BAD_XML.getBytes(StandardCharsets.UTF_8);
+    XmlValidator validator = new XmlValidator();
+    validator.validate(resource, bytes);
+    validator.setHelper(new AppEngineWebXmlValidator());
+    IMarker[] markers = resource.findMarkers(IMarker.PROBLEM, true, IResource.DEPTH_ZERO);
+    String resultMessage = (String) markers[0].getAttribute(IMarker.MESSAGE);
+    assertEquals("XML document structures must start and end within the same entity.",
+        resultMessage);
+    resource.deleteMarkers(IMarker.PROBLEM, true, IResource.DEPTH_ZERO);
+  }
+
+  @Test
+  public void testValidate_noBannedElements() throws IOException, CoreException {
+    byte[] bytes = XML_NO_BANNED_ELEMENTS.getBytes(StandardCharsets.UTF_8);
+    XmlValidator validator = new XmlValidator();
+    validator.setHelper(new AppEngineWebXmlValidator());
+    validator.validate(resource, bytes);
+    IMarker[] markers = resource.findMarkers(APPLICATION_MARKER, true, IResource.DEPTH_ZERO);
+    assertEquals(0, markers.length);
+  }
+
+  @Test
+  public void testValidate_withBannedElements() throws IOException, CoreException {
+    byte[] bytes = XML.getBytes(StandardCharsets.UTF_8);
+    XmlValidator validator = new XmlValidator();
+    validator.setHelper(new AppEngineWebXmlValidator());
+    validator.validate(resource, bytes);
+    IMarker[] markers = resource.findMarkers(APPLICATION_MARKER, true, IResource.DEPTH_ZERO);
+    assertEquals(1, markers.length);
+    String message = Messages.getString("application.element");
+    assertEquals(message, markers[0].getAttribute(IMarker.MESSAGE));
+    assertEquals("line 1", markers[0].getAttribute(IMarker.LOCATION));
+    resource.deleteMarkers(IMarker.PROBLEM, true, IResource.DEPTH_ZERO);
+  }
+  
+  @Test
   public void testCreateMarker() throws CoreException {
     String message = "Project ID should be specified at deploy time.";
     BannedElement element = new BannedElement(message);
-    AppEngineWebXmlValidator.createMarker(resource, element, 0);
+    XmlValidator.createMarker(resource, element, 0);
     IMarker[] markers = resource.findMarkers(IMarker.PROBLEM, true, IResource.DEPTH_ZERO);
     assertEquals(message, markers[0].getAttribute(IMarker.MESSAGE));
+    resource.deleteMarkers(IMarker.PROBLEM, true, IResource.DEPTH_ZERO);
   }
 
   @Test
@@ -99,9 +145,11 @@ public class AbstractXmlValidatorTest {
     String message = "Project ID should be specified at deploy time.";
     SAXParseException spe = new SAXParseException("", "", "", 1, 1);
     SAXException ex = new SAXException(message, spe);
-    AppEngineWebXmlValidator.createSaxErrorMessage(resource, ex);
+    XmlValidator.createSaxErrorMessage(resource, ex);
     IMarker[] markers = resource.findMarkers(IMarker.PROBLEM, true, IResource.DEPTH_ZERO);
+    assertEquals(1, markers.length);
     assertEquals(message, markers[0].getAttribute(IMarker.MESSAGE));
+    resource.deleteMarkers(IMarker.PROBLEM, true, IResource.DEPTH_ZERO);
   }
 
 }

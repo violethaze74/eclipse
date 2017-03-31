@@ -16,21 +16,17 @@
 
 package com.google.cloud.tools.eclipse.appengine.validation;
 
-import org.eclipse.core.resources.IMarker;
-import org.eclipse.wst.validation.internal.provisional.core.IMessage;
+import java.util.ArrayList;
 
-/**
- * A blacklisted java servlet element that will receive a servlet marker. 
- */
-public class JavaServletElement extends BannedElement {
+import org.eclipse.core.resources.IResource;
+import org.w3c.dom.Document;
 
-  private static final String MESSAGE = Messages.getString("web.xml.version");
-  private static final String MARKERID = 
-      "com.google.cloud.tools.eclipse.appengine.validation.servletMarker";
+interface XmlValidationHelper {
   
-  public JavaServletElement(DocumentLocation start, int length) {
-    super(MESSAGE, MARKERID, IMarker.SEVERITY_ERROR, 
-        IMessage.HIGH_SEVERITY, start, length, null /* No source quick fix */);
-  }
-
+  /**
+   * Searches the {@link Document} for banned elements and returns them
+   * as a list of {@link BannedElement}s.
+   */
+  ArrayList<BannedElement> checkForElements(IResource resource, Document document);
+  
 }

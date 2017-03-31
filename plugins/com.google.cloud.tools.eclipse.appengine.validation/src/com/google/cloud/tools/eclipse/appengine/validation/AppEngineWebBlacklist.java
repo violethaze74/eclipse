@@ -16,11 +16,13 @@
 
 package com.google.cloud.tools.eclipse.appengine.validation;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 
 class AppEngineWebBlacklist {
   
@@ -66,6 +68,10 @@ class AppEngineWebBlacklist {
   static AbstractQuickAssistProcessor getQuickAssistProcessor(String element) {
     Preconditions.checkNotNull(element, "element is null");
     return QUICK_ASSIST_PROCESSORS.get(element);
+  }
+  
+  static ArrayList<String> getBlacklistElements() {
+    return Lists.newArrayList(BLACKLIST.keySet());
   }
 
 }

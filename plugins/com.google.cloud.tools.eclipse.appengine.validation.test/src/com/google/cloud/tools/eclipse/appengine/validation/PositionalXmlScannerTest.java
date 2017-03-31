@@ -17,32 +17,34 @@
 package com.google.cloud.tools.eclipse.appengine.validation;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.Queue;
-import javax.xml.parsers.ParserConfigurationException;
 import org.junit.Test;
+import org.w3c.dom.Document;
+import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
-public class BlacklistSaxParserTest {
-  
+public class PositionalXmlScannerTest {
+
   @Test
-  public void testReadXml_emptyXml()
-      throws ParserConfigurationException, IOException, SAXException {
-    String emptyXml = "";
-    byte[] bytes = emptyXml.getBytes(StandardCharsets.UTF_8);
-    assert(BlacklistSaxParser.readXml(bytes).getBlacklist().isEmpty());
+  public void testParse() throws SAXException, IOException {
+    byte[] bytes = "<root><child></child></root>".getBytes(StandardCharsets.UTF_8);
+    Document document = PositionalXmlScanner.parse(bytes);
+    
+    NodeList rootNode = document.getElementsByTagName("root");
+    assertEquals(1, rootNode.getLength());
+    
+    NodeList childNode = document.getElementsByTagName("child");
+    assertEquals(1, childNode.getLength());
   }
   
   @Test
-  public void testReadXml_xmlWithBannedElement()
-      throws ParserConfigurationException, IOException, SAXException {
-    String xml = "<application></application>";
-    byte[] bytes = xml.getBytes(StandardCharsets.UTF_8);
-    Queue<BannedElement> blacklist = BlacklistSaxParser.readXml(bytes).getBlacklist();
-    String message = "Project ID should be specified at deploy time";
-    assertEquals(blacklist.poll().getMessage(), message);
+  public void testParse_emptyXml() throws SAXException, IOException {
+    byte[] bytes = "".getBytes(StandardCharsets.UTF_8);
+    Document document = PositionalXmlScanner.parse(bytes);
+    assertNull(document);
   }
 
 }
