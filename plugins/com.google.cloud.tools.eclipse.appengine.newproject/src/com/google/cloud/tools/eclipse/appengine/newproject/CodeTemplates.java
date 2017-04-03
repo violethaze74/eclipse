@@ -126,7 +126,8 @@ public class CodeTemplates {
           webinf, subMonitor.newChild(5), properties);
     } else {
       IFolder appengine = createChildFolder("appengine", main, subMonitor.newChild(5)); //$NON-NLS-1$
-      copyChildFile("app.yaml", appengine, subMonitor.newChild(5));
+      createChildFile("app.yaml", AppEngineTemplateUtility.APP_YAML_TEMPLATE,
+          appengine, subMonitor.newChild(5), properties);
     }
 
     Map<String, String> packageMap = new HashMap<>();
