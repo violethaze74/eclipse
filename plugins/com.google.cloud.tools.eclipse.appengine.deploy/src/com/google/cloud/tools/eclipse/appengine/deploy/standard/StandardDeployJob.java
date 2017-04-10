@@ -166,7 +166,7 @@ public class StandardDeployJob extends WorkspaceJob {
 
     try {
       getJobManager().beginRule(project, progress);
-      new ExplodedWarPublisher().publish(project, explodedWarDirectory, progress.newChild(40));
+      WarPublisher.publishExploded(project, explodedWarDirectory, progress.newChild(40));
       new StandardProjectStaging().stage(explodedWarDirectory, stagingDirectory,
           cloudSdk, progress.newChild(60));
       return stagingExitListener.getExitStatus();
