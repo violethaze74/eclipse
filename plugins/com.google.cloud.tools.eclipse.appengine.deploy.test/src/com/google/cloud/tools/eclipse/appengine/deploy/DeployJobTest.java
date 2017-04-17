@@ -16,11 +16,10 @@
 
 package com.google.cloud.tools.eclipse.appengine.deploy;
 
-import com.google.cloud.tools.eclipse.appengine.deploy.standard.StandardDeployJob;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class StandardDeployJobTest {
+public class DeployJobTest {
 
   @Test
   public void testGetDeployedAppUrl_internal() {
@@ -28,7 +27,7 @@ public class StandardDeployJobTest {
         createDeployOutput("google.com:notable-torch", "version", "default");
 
     Assert.assertEquals("https://notable-torch.googleplex.com",
-        StandardDeployJob.getDeployedAppUrl(true /* promoted */, deployOutput));
+        DeployJob.getDeployedAppUrl(true /* promoted */, deployOutput));
   }
 
   @Test
@@ -37,7 +36,7 @@ public class StandardDeployJobTest {
         createDeployOutput("s~google.com:notable-torch", "version", "default");
 
     Assert.assertEquals("https://notable-torch.googleplex.com",
-        StandardDeployJob.getDeployedAppUrl(true /* promoted */, deployOutput));
+        DeployJob.getDeployedAppUrl(true /* promoted */, deployOutput));
   }
 
   @Test
@@ -45,7 +44,7 @@ public class StandardDeployJobTest {
     AppEngineDeployOutput deployOutput = createDeployOutput("testProject", "version", "default");
 
     Assert.assertEquals("https://testProject.appspot.com",
-        StandardDeployJob.getDeployedAppUrl(true /* promoted */, deployOutput));
+        DeployJob.getDeployedAppUrl(true /* promoted */, deployOutput));
   }
 
   @Test
@@ -53,7 +52,7 @@ public class StandardDeployJobTest {
     AppEngineDeployOutput deployOutput = createDeployOutput("testProject", "version", "service");
 
     Assert.assertEquals("https://service-dot-testProject.appspot.com",
-        StandardDeployJob.getDeployedAppUrl(true /* promoted */, deployOutput));
+        DeployJob.getDeployedAppUrl(true /* promoted */, deployOutput));
   }
 
   @Test
@@ -61,7 +60,7 @@ public class StandardDeployJobTest {
     AppEngineDeployOutput deployOutput = createDeployOutput("testProject", "version", "default");
 
     Assert.assertEquals("https://version-dot-testProject.appspot.com",
-        StandardDeployJob.getDeployedAppUrl(false /* promoted */, deployOutput));
+        DeployJob.getDeployedAppUrl(false /* promoted */, deployOutput));
   }
 
   @Test
@@ -69,7 +68,7 @@ public class StandardDeployJobTest {
     AppEngineDeployOutput deployOutput = createDeployOutput("testProject", "version", "service");
 
     Assert.assertEquals("https://version-dot-service-dot-testProject.appspot.com",
-        StandardDeployJob.getDeployedAppUrl(false /* promoted */, deployOutput));
+        DeployJob.getDeployedAppUrl(false /* promoted */, deployOutput));
   }
 
   private static AppEngineDeployOutput createDeployOutput(String project, String version,
