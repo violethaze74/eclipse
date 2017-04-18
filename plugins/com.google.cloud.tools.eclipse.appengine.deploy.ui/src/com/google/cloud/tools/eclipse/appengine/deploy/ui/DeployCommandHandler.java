@@ -110,17 +110,18 @@ public class DeployCommandHandler extends AbstractHandler {
     AnalyticsPingManager.getInstance().sendPing(
         AnalyticsEvents.APP_ENGINE_DEPLOY, AnalyticsEvents.APP_ENGINE_DEPLOY_STANDARD, null);
 
-    IPath workDirectory = createWorkDirectory();
-
-    DefaultDeployConfiguration deployConfiguration = getDeployConfiguration(project);
+    DeployPreferences deployPreferences = new DeployPreferences(project);
     DeployConsole messageConsole =
-        MessageConsoleUtilities.createConsole(getConsoleName(deployConfiguration.getProject()),
+        MessageConsoleUtilities.createConsole(getConsoleName(deployPreferences.getProjectId()),
                                               new DeployConsole.Factory());
+    IConsoleManager consoleManager = ConsolePlugin.getDefault().getConsoleManager();
+    consoleManager.showConsoleView(messageConsole);
 
+    IPath workDirectory = createWorkDirectory();
     MessageConsoleStream outputStream = messageConsole.newMessageStream();
-
+    DefaultDeployConfiguration deployConfiguration = toDeployConfiguration(deployPreferences);
     boolean includeOptionalConfigurationFiles =
-        new DeployPreferences(project).isIncludeOptionalConfigurationFiles();
+        deployPreferences.isIncludeOptionalConfigurationFiles();
 
     DeployJob deploy = new DeployJob(project, credential, workDirectory,
         new MessageConsoleWriterOutputLineListener(outputStream),
@@ -139,9 +140,6 @@ public class DeployCommandHandler extends AbstractHandler {
       }
     });
     deploy.schedule();
-
-    IConsoleManager consoleManager = ConsolePlugin.getDefault().getConsoleManager();
-    consoleManager.showConsoleView(messageConsole);
   }
 
   private static String getConsoleName(String projectId) {
@@ -156,9 +154,8 @@ public class DeployCommandHandler extends AbstractHandler {
                                 nowString);
   }
 
-  private static DefaultDeployConfiguration getDeployConfiguration(IProject project)
-                                                                        throws ExecutionException {
-    DeployPreferences deployPreferences = new DeployPreferences(project);
+  private static DefaultDeployConfiguration toDeployConfiguration(
+      DeployPreferences deployPreferences) throws ExecutionException {
     if (deployPreferences.getProjectId() == null || deployPreferences.getProjectId().isEmpty()) {
       throw new ExecutionException(Messages.getString("error.projectId.missing"));
     }
