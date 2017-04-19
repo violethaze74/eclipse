@@ -17,8 +17,8 @@
 package com.google.cloud.tools.eclipse.appengine.deploy.flex;
 
 import com.google.cloud.tools.appengine.cloudsdk.CloudSdk;
-import com.google.cloud.tools.eclipse.appengine.deploy.StagingDelegate;
 import com.google.cloud.tools.eclipse.appengine.deploy.CloudSdkStagingHelper;
+import com.google.cloud.tools.eclipse.appengine.deploy.StagingDelegate;
 import com.google.cloud.tools.eclipse.appengine.deploy.WarPublisher;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.runtime.CoreException;
@@ -32,7 +32,7 @@ public class FlexStagingDelegate implements StagingDelegate {
 
   private final IPath appEngineDirectory;
 
-  FlexStagingDelegate(IPath appEngineDirectory) {
+  public FlexStagingDelegate(IPath appEngineDirectory) {
     this.appEngineDirectory = appEngineDirectory;
   }
 
