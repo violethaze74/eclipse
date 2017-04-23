@@ -17,6 +17,7 @@
 package com.google.cloud.tools.eclipse.appengine.facets;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import java.util.ArrayList;
 import java.util.List;
@@ -251,6 +252,7 @@ public class AppEngineStandardFacet {
     IRuntimeType appEngineRuntimeType =
         ServerCore.findRuntimeType(AppEngineStandardFacet.DEFAULT_RUNTIME_ID);
     if (appEngineRuntimeType == null) {
+      logger.warning("RuntimeTypes: " + Joiner.on(",").join(ServerCore.getRuntimeTypes()));
       throw new NullPointerException(
           "Could not find " + AppEngineStandardFacet.DEFAULT_RUNTIME_NAME + " runtime type");
     }
