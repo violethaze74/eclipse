@@ -14,32 +14,31 @@
  * limitations under the License.
  */
 
-package com.google.cloud.tools.eclipse.appengine.deploy.ui;
+package com.google.cloud.tools.eclipse.appengine.deploy.ui.standard;
 
-import com.google.cloud.tools.eclipse.appengine.facets.AppEngineFlexFacet;
+import com.google.cloud.tools.eclipse.appengine.deploy.ui.AppEngineDeployPreferencesPanel;
+import com.google.cloud.tools.eclipse.appengine.deploy.ui.DeployPropertyPageTest;
+import com.google.cloud.tools.eclipse.appengine.facets.AppEngineStandardFacet;
 import com.google.cloud.tools.eclipse.test.util.project.TestProjectCreator;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.jst.common.project.facet.core.JavaFacet;
 import org.eclipse.jst.j2ee.web.project.facet.WebFacetUtils;
 import org.junit.Rule;
 
-public class DeployPropertyPageForFlexProjectTest
-    extends DeployPropertyPageTest<FlexDeployPreferencesPanel> {
+public class DeployPropertyPageForStandardProjectTest
+    extends DeployPropertyPageTest<AppEngineDeployPreferencesPanel> {
 
-  // TODO: remove "Required-Bundle: com.google.cloud.tools.eclipse.appengine.flex" from
-  // "MANIFEST.MF" once the flex facet is fully available.
   @Rule
-  public TestProjectCreator flexProjectCreator = new TestProjectCreator().withFacetVersions(
-      JavaFacet.VERSION_1_7, WebFacetUtils.WEB_25, AppEngineFlexFacet.FACET_VERSION);
+  public TestProjectCreator standardProjectCreator = new TestProjectCreator().withFacetVersions(
+      JavaFacet.VERSION_1_7, WebFacetUtils.WEB_25, AppEngineStandardFacet.FACET_VERSION);
 
   @Override
   protected IProject getProject() {
-    IProject project = flexProjectCreator.getProject();
-    return project;
+    return standardProjectCreator.getProject();
   }
 
   @Override
-  protected Class<FlexDeployPreferencesPanel> getPanelClass() {
-    return FlexDeployPreferencesPanel.class;
+  protected Class<AppEngineDeployPreferencesPanel> getPanelClass() {
+    return AppEngineDeployPreferencesPanel.class;
   }
 }

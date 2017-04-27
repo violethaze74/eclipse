@@ -16,29 +16,28 @@
 
 package com.google.cloud.tools.eclipse.appengine.deploy.ui.standard;
 
-import com.google.cloud.tools.eclipse.appengine.deploy.StagingDelegate;
-import com.google.cloud.tools.eclipse.appengine.deploy.standard.StandardStagingDelegate;
-import com.google.cloud.tools.eclipse.appengine.deploy.ui.DeployCommandHandler;
+import com.google.cloud.tools.eclipse.appengine.deploy.ui.AppEngineDeployPreferencesPanel;
 import com.google.cloud.tools.eclipse.appengine.deploy.ui.DeployPreferencesDialog;
-import com.google.cloud.tools.eclipse.appengine.deploy.ui.Messages;
 import com.google.cloud.tools.eclipse.googleapis.IGoogleApiFactory;
 import com.google.cloud.tools.eclipse.login.IGoogleLoginService;
+import com.google.cloud.tools.eclipse.projectselector.ProjectRepository;
 import org.eclipse.core.resources.IProject;
+import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Shell;
 
-public class StandardDeployCommandHandler extends DeployCommandHandler {
+class StandardDeployPreferencesDialog extends DeployPreferencesDialog {
 
-  @Override
-  protected DeployPreferencesDialog newDeployPreferencesDialog(Shell shell, IProject project,
+  StandardDeployPreferencesDialog(Shell parentShell, String title, IProject project,
       IGoogleLoginService loginService, IGoogleApiFactory googleApiFactory) {
-    String title = Messages.getString("deploy.preferences.dialog.title.standard");
-    return new StandardDeployPreferencesDialog(
-        shell, title, project, loginService, googleApiFactory);
+    super(parentShell, title, project, loginService, googleApiFactory);
   }
 
   @Override
-  protected StagingDelegate getStagingDelegate(IProject project) {
-    return new StandardStagingDelegate();
+  protected AppEngineDeployPreferencesPanel createDeployPreferencesPanel(Composite container,
+      IProject project, IGoogleLoginService loginService, Runnable layoutChangedHandler,
+      boolean requireValues, ProjectRepository projectRepository) {
+    return new StandardDeployPreferencesPanel(container, project, loginService,
+        layoutChangedHandler, requireValues, projectRepository);
   }
 
 }
