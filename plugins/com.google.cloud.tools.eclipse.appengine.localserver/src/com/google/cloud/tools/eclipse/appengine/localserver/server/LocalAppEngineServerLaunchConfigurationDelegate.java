@@ -37,6 +37,7 @@ import com.google.common.net.InetAddresses;
 import java.io.File;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.nio.file.Paths;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -70,9 +71,12 @@ import org.eclipse.debug.core.model.IDebugTarget;
 import org.eclipse.debug.core.model.IMemoryBlock;
 import org.eclipse.debug.core.model.IProcess;
 import org.eclipse.debug.core.model.IThread;
+import org.eclipse.jdt.core.IJavaProject;
+import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.launching.AbstractJavaLaunchConfigurationDelegate;
 import org.eclipse.jdt.launching.IJavaLaunchConfigurationConstants;
 import org.eclipse.jdt.launching.IVMConnector;
+import org.eclipse.jdt.launching.IVMInstall;
 import org.eclipse.jdt.launching.JavaRuntime;
 import org.eclipse.jdt.launching.SocketUtil;
 import org.eclipse.wst.server.core.IModule;
@@ -127,7 +131,7 @@ public class LocalAppEngineServerLaunchConfigurationDelegate
   @VisibleForTesting
   void checkConflictingLaunches(ILaunchConfigurationType launchConfigType,
       DefaultRunConfiguration runConfig, ILaunch[] launches) throws CoreException {
-
+    
     for (ILaunch launch : launches) {
       if (launch.isTerminated()
           || launch.getLaunchConfiguration() == null
@@ -338,7 +342,7 @@ public class LocalAppEngineServerLaunchConfigurationDelegate
 
     LocalAppEngineServerBehaviour serverBehaviour = (LocalAppEngineServerBehaviour) server
         .loadAdapter(LocalAppEngineServerBehaviour.class, null);
-
+   
     setDefaultSourceLocator(launch, configuration);
 
     List<File> runnables = new ArrayList<>();
@@ -370,7 +374,13 @@ public class LocalAppEngineServerLaunchConfigurationDelegate
         int debugPort = getDebugPort();
         setupDebugTarget(devServerRunConfiguration, launch, debugPort, monitor);
       }
-      serverBehaviour.startDevServer(devServerRunConfiguration, console.newMessageStream());
+      
+      IJavaProject javaProject = JavaCore.create(modules[0].getProject());
+      IVMInstall vmInstall = JavaRuntime.getVMInstall(javaProject);
+      
+      String javaHome = vmInstall.getInstallLocation().getAbsolutePath();
+      serverBehaviour.startDevServer(devServerRunConfiguration, Paths.get(javaHome),
+          console.newMessageStream());
     } catch (CoreException ex) {
       launch.terminate();
       throw ex;
@@ -388,7 +398,8 @@ public class LocalAppEngineServerLaunchConfigurationDelegate
     if (pageLocation == null) {
       return;
     }
-    WorkbenchUtil.openInBrowserInUiThread(pageLocation, server.getId(), server.getName(), server.getName());
+    WorkbenchUtil.openInBrowserInUiThread(pageLocation, server.getId(), server.getName(),
+        server.getName());
   }
 
   private void setupDebugTarget(DefaultRunConfiguration devServerRunConfiguration, ILaunch launch,
