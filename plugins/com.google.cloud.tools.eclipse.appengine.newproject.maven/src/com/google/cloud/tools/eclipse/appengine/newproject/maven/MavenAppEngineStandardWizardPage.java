@@ -369,6 +369,12 @@ public class MavenAppEngineStandardWizardPage extends WizardPage {
 
   private boolean validateAppEngineProjectDetails() {
     String packageName = getPackageName();
+    if (packageName.isEmpty()) {
+      String message = Messages.getString("EMPTY_PACKAGE_NAME"); //$NON-NLS-1$
+      setErrorMessage(message);
+      return false;
+    }
+    
     IStatus status = JavaPackageValidator.validate(packageName);
     if (!status.isOK()) {
       String details = status.getMessage() == null ? packageName : status.getMessage();
