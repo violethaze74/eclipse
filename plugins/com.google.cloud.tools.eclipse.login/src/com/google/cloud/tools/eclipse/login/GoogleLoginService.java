@@ -100,13 +100,11 @@ public class GoogleLoginService implements IGoogleLoginService {
   @VisibleForTesting
   GoogleLoginService(OAuthDataStore dataStore, LoginServiceUi uiFacade, LoggerFacade loggerFacade) {
     this(new GoogleLoginState(Constants.getOAuthClientId(), Constants.getOAuthClientSecret(),
-                              OAUTH_SCOPES, dataStore, uiFacade, loggerFacade),
-         dataStore, uiFacade, loggerFacade);
+                              OAUTH_SCOPES, dataStore, uiFacade, loggerFacade), uiFacade);
   }
 
   @VisibleForTesting
-  GoogleLoginService(GoogleLoginState loginState,
-      OAuthDataStore dataStore, LoginServiceUi uiFacade, LoggerFacade loggerFacade) {
+  GoogleLoginService(GoogleLoginState loginState, LoginServiceUi uiFacade) {
     loginServiceUi = uiFacade;
     this.loginState = loginState;
     loginState.setApplicationName(CloudToolsInfo.USER_AGENT);
