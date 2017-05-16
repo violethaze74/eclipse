@@ -188,7 +188,7 @@ public class GoogleLoginServiceTest {
   }
 
   private GoogleLoginService newLoginServiceWithMockLoginState(boolean setUpSuccessfulLogins) {
-    GoogleLoginService loginService = new GoogleLoginService(loginState, uiFacade);
+    GoogleLoginService loginService = new GoogleLoginService(loginState);
 
     if (setUpSuccessfulLogins) {
       when(loginState.logInWithLocalServer(anyString()))
