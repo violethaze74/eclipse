@@ -374,7 +374,7 @@ public class MavenAppEngineStandardWizardPage extends WizardPage {
       setErrorMessage(message);
       return false;
     }
-    
+
     IStatus status = JavaPackageValidator.validate(packageName);
     if (!status.isOK()) {
       String details = status.getMessage() == null ? packageName : status.getMessage();
@@ -436,8 +436,7 @@ public class MavenAppEngineStandardWizardPage extends WizardPage {
 
     @Override
     public void modifyText(ModifyEvent event) {
-      // getGroupId() trims whitespace, so we do the same to sync with the dialog validation error.
-      String groupId = groupIdField.getText().trim();
+      String groupId = getGroupId();
 
       if (MavenCoordinatesValidator.validateGroupId(groupId)) {
         String newSuggestion = suggestPackageName(groupId);
