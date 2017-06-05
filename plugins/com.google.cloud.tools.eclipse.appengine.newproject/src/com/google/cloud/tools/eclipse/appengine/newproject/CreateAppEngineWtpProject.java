@@ -20,7 +20,6 @@ import com.google.cloud.tools.eclipse.appengine.libraries.BuildPath;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URI;
 import java.util.Arrays;
-
 import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
@@ -38,6 +37,8 @@ import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.junit.JUnitCore;
 import org.eclipse.jst.j2ee.classpathdep.UpdateClasspathAttributeUtil;
+import org.eclipse.m2e.core.MavenPlugin;
+import org.eclipse.m2e.core.project.ResolverConfiguration;
 import org.eclipse.ui.actions.WorkspaceModifyOperation;
 import org.eclipse.ui.ide.undo.CreateProjectOperation;
 
@@ -50,7 +51,8 @@ public abstract class CreateAppEngineWtpProject extends WorkspaceModifyOperation
   private final IAdaptable uiInfoAdapter;
   private IFile mostImportant = null;
 
-  public abstract void addAppEngineFacet(IProject newProject, IProgressMonitor monitor) throws CoreException;
+  public abstract void addAppEngineFacet(IProject newProject, IProgressMonitor monitor)
+      throws CoreException;
 
   /**
    * Returns a user visible name for the resource operation that generates the files
@@ -61,8 +63,8 @@ public abstract class CreateAppEngineWtpProject extends WorkspaceModifyOperation
   /**
    * Returns the most important file created that the IDE will open in the editor.
    */
-  public abstract IFile createAndConfigureProjectContent(IProject newProject, AppEngineProjectConfig config,
-      IProgressMonitor monitor) throws CoreException;
+  public abstract IFile createAndConfigureProjectContent(IProject newProject,
+      AppEngineProjectConfig config, IProgressMonitor monitor) throws CoreException;
 
   /**
    * @return the file in the project that should be opened in an editor when the wizard finishes;
@@ -93,7 +95,7 @@ public abstract class CreateAppEngineWtpProject extends WorkspaceModifyOperation
 
     String operationLabel = getDescription();
     SubMonitor subMonitor = SubMonitor.convert(monitor, operationLabel, 100);
-    CreateProjectOperation operation = new CreateProjectOperation(description, operationLabel); 
+    CreateProjectOperation operation = new CreateProjectOperation(description, operationLabel);
     try {
       operation.execute(subMonitor.newChild(10), uiInfoAdapter);
       mostImportant = createAndConfigureProjectContent(newProject, config, subMonitor.newChild(80));
@@ -101,11 +103,27 @@ public abstract class CreateAppEngineWtpProject extends WorkspaceModifyOperation
       throw new InvocationTargetException(ex);
     }
 
+    if (config.getUseMaven()) {
+      enableMavenNature(newProject, subMonitor.newChild(2));
+    }
+
     addAppEngineFacet(newProject, subMonitor.newChild(4));
 
     BuildPath.addLibraries(newProject, config.getAppEngineLibraries(), subMonitor.newChild(2));
 
     addJunit4ToClasspath(subMonitor.newChild(2), newProject);
+  }
+
+  private void enableMavenNature(IProject newProject, IProgressMonitor monitor)
+      throws CoreException {
+    SubMonitor subMonitor = SubMonitor.convert(monitor, 22);
+
+    ResolverConfiguration resolverConfiguration = new ResolverConfiguration();
+    MavenPlugin.getProjectConfigurationManager().enableMavenNature(newProject,
+        resolverConfiguration, subMonitor.newChild(20));
+    // M2E will cleverly set "target/<artifact ID>-<version>/WEB-INF/classes" as a new Java output
+    // folder; delete the default old folder.
+    newProject.getFolder("build").delete(true /* force */, subMonitor.newChild(2));
   }
 
   private static void addJunit4ToClasspath(IProgressMonitor monitor, IProject newProject)
