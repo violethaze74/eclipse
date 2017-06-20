@@ -21,10 +21,13 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.google.cloud.tools.eclipse.appengine.facets.AppEngineStandardFacet;
+import com.google.cloud.tools.eclipse.test.util.ArrayAssertions;
 import com.google.cloud.tools.eclipse.test.util.project.ProjectUtils;
 import com.google.cloud.tools.eclipse.test.util.project.TestProjectCreator;
 import com.google.cloud.tools.eclipse.ui.util.WorkbenchUtil;
+import com.google.common.base.Function;
 import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IMarker;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.CoreException;
@@ -84,7 +87,14 @@ public class XsltSourceQuickFixTest {
     editorPart.doSave(new NullProgressMonitor());
 
     ProjectUtils.waitForProjects(project);
-    assertEquals(0, file.findMarkers(BLACKLIST_MARKER, true, IResource.DEPTH_ZERO).length);
+
+    IMarker[] markers = file.findMarkers(BLACKLIST_MARKER, true, IResource.DEPTH_ZERO);
+    ArrayAssertions.assertIsEmpty(markers, new Function<IMarker, String>() {
+      @Override
+      public String apply(IMarker marker) {
+        return ProjectUtils.formatProblem(marker);
+      }
+    });
   }
 
 }
