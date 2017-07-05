@@ -16,8 +16,11 @@
 
 package com.google.cloud.tools.eclipse.appengine.standard.java8;
 
+import com.google.cloud.tools.appengine.AppEngineDescriptor;
 import com.google.cloud.tools.eclipse.appengine.facets.AppEngineStandardFacet;
 import com.google.cloud.tools.eclipse.appengine.facets.WebProjectUtil;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.eclipse.core.resources.ICommand;
@@ -26,21 +29,24 @@ import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IProjectDescription;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.Path;
-import org.eclipse.jst.common.project.facet.core.JavaFacet;
 import org.eclipse.wst.common.project.facet.core.IFacetedProject;
+import org.eclipse.wst.common.project.facet.core.IProjectFacetVersion;
 import org.eclipse.wst.common.project.facet.core.events.IFacetedProjectEvent;
 import org.eclipse.wst.common.project.facet.core.events.IFacetedProjectEvent.Type;
 import org.eclipse.wst.common.project.facet.core.events.IFacetedProjectListener;
 import org.eclipse.wst.common.project.facet.core.events.IProjectFacetActionEvent;
+import org.xml.sax.SAXException;
 
 /**
- * Handle facet install and uninstalls, version changes, and generally anything else, and reflect
- * such changes into the {@code appengine-web.xml}. Also add/remove the {@link AppEngineWebBuilder}
- * to monitor for user changes involving the {@code <runtime>java8</runtime>} element in the
- * {@code appengine-web.xml}.
+ * Reflects facet changes to and from the {@code appengine-web.xml}. Also add/remove the
+ * {@link AppEngineWebBuilder} to monitor for user changes involving the
+ * {@code <runtime>java8</runtime>} element in the {@code appengine-web.xml}.
  */
-public class FacetChangeListener implements IFacetedProjectListener {
-  private static final Logger logger = Logger.getLogger(FacetChangeListener.class.getName());
+public class AppEngineStandardFacetChangeListener implements IFacetedProjectListener {
+  private static final Logger logger = Logger.getLogger(AppEngineStandardFacetChangeListener.class.getName());
+
+  static final IProjectFacetVersion APP_ENGINE_STANDARD_JRE8 =
+      AppEngineStandardFacet.FACET.getVersion("JRE8");
 
   @Override
   public void handleEvent(IFacetedProjectEvent event) {
@@ -49,26 +55,43 @@ public class FacetChangeListener implements IFacetedProjectListener {
       return;
     }
     IProjectFacetActionEvent action = (IProjectFacetActionEvent) event;
-    if (!JavaFacet.FACET.equals(action.getProjectFacet())
-        && !AppEngineStandardFacet.FACET.equals(action.getProjectFacet())) {
+    if (!AppEngineStandardFacet.FACET.equals(action.getProjectFacet())) {
       return;
     }
     logger.fine("Facet change: " + action.getProjectFacet());
     IFacetedProject project = event.getProject();
-    if (!AppEngineStandardFacet.hasFacet(project)) {
+    if (event.getType() == Type.POST_UNINSTALL) {
       removeAppEngineWebBuilder(project.getProject());
       return;
     }
     addAppEngineWebBuilder(project.getProject());
+
     IFile descriptor = findDescriptor(project);
     if (descriptor == null) {
       logger.warning(project + ": cannot find appengine-web.xml");
-        return;
+      return;
+    }
+    try {
+      boolean isDescriptorJava8 = isJava8(descriptor);
+      boolean isFacetJava8 = APP_ENGINE_STANDARD_JRE8.equals(action.getProjectFacetVersion());
+      if (isDescriptorJava8 != isFacetJava8) {
+        if (isFacetJava8) {
+          logger.fine(project + ": adding <runtime>java8</runtime> to appengine-web.xml");
+          AppEngineDescriptorTransform.addJava8Runtime(descriptor);
+        } else {
+          logger.fine(project + ": removing <runtime>java8</runtime> from appengine-web.xml");
+          AppEngineDescriptorTransform.removeJava8Runtime(descriptor);
+        }
       }
-    if (project.hasProjectFacet(JavaFacet.VERSION_1_8)) {
-      AppEngineDescriptorTransform.addJava8Runtime(descriptor);
-    } else {
-      AppEngineDescriptorTransform.removeJava8Runtime(descriptor);
+    } catch (SAXException | IOException | CoreException ex) {
+      logger.log(Level.SEVERE,
+          project + ": unable to update <runtime> element in " + descriptor, ex);
+    }
+  }
+
+  private static boolean isJava8(IFile descriptor) throws IOException, CoreException, SAXException {
+    try (InputStream input = descriptor.getContents()) {
+      return AppEngineDescriptor.parse(input).isJava8();
     }
   }
 

@@ -41,11 +41,11 @@ public class AppEngineStandardProjectConvertJob extends Job {
   protected IStatus run(IProgressMonitor monitor) {
     SubMonitor subMonitor = SubMonitor.convert(monitor, 100);
 
-    // Updating project before installing App Engine facet to avoid
-    // https://github.com/GoogleCloudPlatform/google-cloud-eclipse/issues/1155.
-    GpeMigrator.removeObsoleteGpeRemnants(facetedProject, subMonitor.newChild(20));
-
     try {
+      // Updating project before installing App Engine facet to avoid
+      // https://github.com/GoogleCloudPlatform/google-cloud-eclipse/issues/1155.
+      GpeMigrator.removeObsoleteGpeRemnants(facetedProject, subMonitor.newChild(20));
+
       AppEngineStandardFacet.installAppEngineFacet(facetedProject,
           true /* install Java and Web facets too (safe even if already installed) */,
           subMonitor.newChild(80));

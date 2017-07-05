@@ -32,6 +32,8 @@ import java.util.concurrent.TimeUnit;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.Path;
+import org.eclipse.jst.common.project.facet.core.JavaFacet;
+import org.eclipse.jst.j2ee.web.project.facet.WebFacetUtils;
 import org.eclipse.swtbot.swt.finder.junit.SWTBotJunit4ClassRunner;
 import org.eclipse.wst.common.project.facet.core.IFacetedProject;
 import org.eclipse.wst.common.project.facet.core.ProjectFacetsManager;
@@ -78,20 +80,24 @@ public class NewMavenBasedAppEngineProjectWizardTest extends BaseProjectTest {
 
   /** Create a project with the given parameters. */
   private void createAndCheck(String artifactId, String location, String packageName,
-      String[] projectFiles) throws CoreException {
+      String[] projectFiles) throws CoreException, IOException {
     assertFalse(projectExists(artifactId));
 
     project = SwtBotAppEngineActions.createMavenWebAppProject(bot, artifactId, location,
         packageName, "com.google.groupId", artifactId);
     assertTrue(project.exists());
     if (location != null) {
-      assertEquals(new File(location).toPath(), project.getLocation().toFile().toPath());
+      assertEquals(new File(location).getCanonicalPath(),
+          project.getLocation().toFile().getCanonicalPath());
     }
 
     IFacetedProject facetedProject = ProjectFacetsManager.create(project);
     assertNotNull("m2e-wtp should create a faceted project", facetedProject);
-    assertTrue("Project does not have standard facet",
-        AppEngineStandardFacet.hasFacet(facetedProject));
+    assertEquals("Project does not have standard facet", AppEngineStandardFacet.JRE7,
+        facetedProject.getProjectFacetVersion(AppEngineStandardFacet.FACET));
+    assertEquals(JavaFacet.VERSION_1_7, facetedProject.getProjectFacetVersion(JavaFacet.FACET));
+    assertEquals(WebFacetUtils.WEB_25,
+        facetedProject.getProjectFacetVersion(WebFacetUtils.WEB_FACET));
 
     for (String projectFile : projectFiles) {
       Path projectFilePath = new Path(projectFile);
