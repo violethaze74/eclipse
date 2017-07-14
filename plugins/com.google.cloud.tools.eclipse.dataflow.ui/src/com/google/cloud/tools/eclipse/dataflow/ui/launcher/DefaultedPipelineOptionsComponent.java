@@ -129,10 +129,9 @@ public class DefaultedPipelineOptionsComponent {
       customValues.put(
           DataflowPreferences.GCP_TEMP_LOCATION_PROPERTY, defaultOptions.getStagingLocation());
       String defaultProject = preferences.getDefaultProject();
-      defaultOptions.setCloudProjectText(defaultProject == null ? "" : defaultProject);
+      defaultOptions.setCloudProjectText(Strings.nullToEmpty(defaultProject));
       String defaultStagingLocation = preferences.getDefaultStagingLocation();
-      defaultOptions.setStagingLocationText(
-          defaultStagingLocation == null ? "" : defaultStagingLocation);
+      defaultOptions.setStagingLocationText(Strings.nullToEmpty(defaultStagingLocation));
     } else {
       String project = customValues.get(DataflowPreferences.PROJECT_PROPERTY);
       if (!Strings.isNullOrEmpty(project)) {
