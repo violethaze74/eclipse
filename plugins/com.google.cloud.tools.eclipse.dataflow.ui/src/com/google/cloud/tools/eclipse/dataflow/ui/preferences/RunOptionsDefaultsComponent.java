@@ -347,6 +347,7 @@ public class RunOptionsDefaultsComponent {
       if (result.isSuccessful()) {
         messageTarget.setInfo("Created staging location at " + stagingLocation);
         setPageComplete(true);
+        createButton.setEnabled(false);
       } else {
         messageTarget.setError("Could not create staging location at " + stagingLocation);
         setPageComplete(false);
