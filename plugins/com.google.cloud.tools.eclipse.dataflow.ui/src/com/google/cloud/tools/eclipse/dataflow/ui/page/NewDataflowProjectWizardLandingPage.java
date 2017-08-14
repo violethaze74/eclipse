@@ -138,11 +138,11 @@ public class NewDataflowProjectWizardLandingPage extends WizardPage  {
     artifactIdInput = addLabeledText(formComposite, "&Artifact ID:");
     artifactIdInput.setToolTipText(Messages.getString("ARTIFACT_ID_TOOLTIP"));
 
-    templateDropdown = addCombo(formComposite, "Project &Template:", true);
+    templateDropdown = addCombo(formComposite, "Project &template:", true);
     for (Template template : Template.values()) {
       templateDropdown.add(template.getLabel());
     }
-    templateVersionDropdown = addCombo(formComposite, "Project Dataflow &Version", false);
+    templateVersionDropdown = addCombo(formComposite, "Dataflow &version:", false);
 
     templateDropdown.select(0);
     updateAvailableVersions();
@@ -156,7 +156,7 @@ public class NewDataflowProjectWizardLandingPage extends WizardPage  {
     locationGroup.setLayoutData(gridSpan(GridData.FILL_HORIZONTAL, 3));
     locationGroup.setLayout(new GridLayout(3, false));
 
-    useDefaultLocation = addCheckbox(locationGroup, "Use default &Workspace location", true);
+    useDefaultLocation = addCheckbox(locationGroup, "Use default &workspace location", true);
 
     addLabel(locationGroup, "&Location:");
 
@@ -172,9 +172,9 @@ public class NewDataflowProjectWizardLandingPage extends WizardPage  {
 
     projectNameTemplate = addCombo(formComposite, "Name &template:", false);
     projectNameTemplate.setToolTipText(
-        "Optional Eclipse project name template such as [groupId]-[artifactId].");
-    projectNameTemplate.add("[artifactId]");
-    projectNameTemplate.add("[groupId]-[artifactId]");
+        "Optional Eclipse Project Name Template such as [groupId]-[artifactId].");
+    projectNameTemplate.add("[artifactId]"); //$NON-NLS-1$
+    projectNameTemplate.add("[groupId]-[artifactId]"); //$NON-NLS-1$
     projectNameTemplate.setLayoutData(gridSpan(GridData.FILL_HORIZONTAL, 1));
 
     // Register all the listeners
