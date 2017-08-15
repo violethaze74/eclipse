@@ -56,6 +56,9 @@ import org.eclipse.m2e.core.project.ProjectImportConfiguration;
  */
 public class DataflowProjectCreator implements IRunnableWithProgress {
   private static final Pattern MAVEN_ID_REGEX = Pattern.compile("[A-Za-z0-9_\\-.]+");
+  
+  // todo use JavaConventions.validatePackageName or JavaPackageValidator instead
+  // this doesn't allow non-ASCII packages, among other problems
   private static final Pattern JAVA_PACKAGE_REGEX =
       Pattern.compile("([a-zA-Z_$][a-zA-Z0-9_$]*\\.)*[a-zA-Z_$][a-zA-Z0-9_$]*");
 
@@ -347,8 +350,10 @@ public class DataflowProjectCreator implements IRunnableWithProgress {
   }
 
   private DataflowProjectValidationStatus validatePackage() {
-    if (Strings.isNullOrEmpty(packageString)
-        || !JAVA_PACKAGE_REGEX.matcher(packageString).matches()) {
+    if (Strings.isNullOrEmpty(packageString)) {
+      return DataflowProjectValidationStatus.MISSING_PACKAGE;
+    }
+    if (!JAVA_PACKAGE_REGEX.matcher(packageString).matches()) {
       return DataflowProjectValidationStatus.ILLEGAL_PACKAGE;
     }
     return DataflowProjectValidationStatus.OK;
