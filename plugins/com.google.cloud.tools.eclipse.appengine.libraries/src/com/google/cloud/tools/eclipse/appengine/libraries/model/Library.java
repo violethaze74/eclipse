@@ -41,6 +41,7 @@ public final class Library {
   private List<LibraryFile> libraryFiles = Collections.emptyList();
   private LibraryRecommendation recommendation = LibraryRecommendation.OPTIONAL;
   private String group;
+  private String javaVersion="1.7";
 
   // IDs of other libraries that also need to be added to the build path with this library
   private List<String> libraryDependencies = new ArrayList<>();
@@ -56,7 +57,6 @@ public final class Library {
     this.id = id;
     this.libraryFiles = libraryFiles;
   }
-
   
   public String getId() {
     return id;
@@ -72,6 +72,17 @@ public final class Library {
 
   void setName(String name) {
     this.name = name;
+  }
+  
+  /**
+   * @return minimum Java version required for this library
+   */
+  public String getJavaVersion() {
+    return javaVersion;
+  }
+
+  void setJavaVersion(String version) {
+    this.javaVersion = version;
   }
   
   public String getToolTip() {

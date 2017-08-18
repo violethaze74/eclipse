@@ -60,6 +60,7 @@ class LibraryFactory {
   
   private static final ArtifactRetriever retriever = new ArtifactRetriever();
 
+  // todo this should be static
   Library create(IConfigurationElement configurationElement) throws LibraryFactoryException {
     try {
       if (ELEMENT_NAME_LIBRARY.equals(configurationElement.getName())) {
@@ -73,6 +74,10 @@ class LibraryFactory {
         String exportString = configurationElement.getAttribute(ATTRIBUTE_NAME_EXPORT);
         if (exportString != null) {
           library.setExport(Boolean.parseBoolean(exportString));
+        }
+        String versionString = configurationElement.getAttribute("javaVersion"); //$NON-NLS-1$
+        if (versionString != null) {
+          library.setJavaVersion(versionString);
         }
         String recommendationString =
             configurationElement.getAttribute(ATTRIBUTE_NAME_RECOMMENDATION);

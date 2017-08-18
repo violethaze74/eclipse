@@ -46,6 +46,7 @@ public class LibraryFactoryTest {
     Mockito.when(mavenCoordinates[0].getAttribute("artifactId")).thenReturn("guava");
     
     Mockito.when(configuration.getAttribute("group")).thenReturn("com.google.guava");
+    Mockito.when(configuration.getAttribute("javaVersion")).thenReturn("1.8");
     Mockito.when(configuration.getName()).thenReturn("library");
     Mockito.when(configuration.getAttribute("siteUri"))
         .thenReturn(
@@ -86,6 +87,7 @@ public class LibraryFactoryTest {
 
     Library library = factory.create(configuration);
     Assert.assertEquals("com.google.guava", library.getGroup());
+    Assert.assertEquals("1.8", library.getJavaVersion());
   }
 
   @Test
