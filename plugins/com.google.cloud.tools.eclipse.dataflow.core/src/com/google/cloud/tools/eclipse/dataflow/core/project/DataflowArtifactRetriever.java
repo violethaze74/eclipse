@@ -57,7 +57,7 @@ import org.xml.sax.SAXException;
  * <p>The artifact retriever reads Maven Central metadata XML files to retrieve available and latest
  * versions.
  */
-public class DataflowArtifactRetriever {
+class DataflowArtifactRetriever {
 
   private static URL getMetadataUrl(String artifactId) {
     try {
@@ -110,25 +110,16 @@ public class DataflowArtifactRetriever {
               });
 
   private static final DataflowArtifactRetriever INSTANCE = new DataflowArtifactRetriever();
-  public static DataflowArtifactRetriever defaultInstance() {
+  static DataflowArtifactRetriever defaultInstance() {
     return INSTANCE;
   }
   ////////////////////////////////////////////////////////////////////////////////////////////////
 
   /**
-   * Returns the latest published SDK Version in the version range, or null if there is no such
-   * version.
-   */
-  public ArtifactVersion getLatestSdkVersion(VersionRange versionRange) {
-    return getLatestIncrementalVersion(DataflowMavenCoordinates.ARTIFACT_ID, versionRange);
-  }
-
-  /**
    * Returns the latest published Archetype Version in the version range, or null if there is no
    * such version.
    */
-  public ArtifactVersion getLatestArchetypeVersion(
-      Template template, MajorVersion majorVersion) {
+  ArtifactVersion getLatestArchetypeVersion(Template template, MajorVersion majorVersion) {
     checkArgument(template.getSdkVersions().contains(majorVersion));
     return getLatestIncrementalVersion(template.getArchetype(), majorVersion.getVersionRange());
   }
