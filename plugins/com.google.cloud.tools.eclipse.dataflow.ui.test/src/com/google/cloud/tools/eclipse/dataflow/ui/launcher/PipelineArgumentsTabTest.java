@@ -122,8 +122,10 @@ public class PipelineArgumentsTabTest {
 
     @Test
     public void assertRunnerButtonChecked() {
+      ILaunchConfigurationDialog dialog = mock(ILaunchConfigurationDialog.class);
       Shell shell = shellResource.getShell();
       PipelineArgumentsTab tab = new PipelineArgumentsTab();
+      tab.setLaunchConfigurationDialog(dialog);
       tab.createControl(shell);
 
       tab.updateRunnerButtons(testParameter.majorVersion);
