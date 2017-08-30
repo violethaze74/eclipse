@@ -57,8 +57,6 @@ class LibraryFactory {
   private static final String ATTRIBUTE_NAME_CLASSIFIER = "classifier"; //$NON-NLS-1$
   private static final String ATTRIBUTE_NAME_EXPORT = "export"; //$NON-NLS-1$
   private static final String ATTRIBUTE_NAME_RECOMMENDATION = "recommendation"; //$NON-NLS-1$
-  
-  private static final ArtifactRetriever retriever = new ArtifactRetriever();
 
   // prevent instantiation
   private LibraryFactory() {}
@@ -154,7 +152,8 @@ class LibraryFactory {
     // Only look up latest version if version isn't specified in file.
     String version = mavenCoordinatesElement.getAttribute(ATTRIBUTE_NAME_VERSION);
     if (Strings.isNullOrEmpty(version) || "LATEST".equals(version)) {
-      ArtifactVersion artifactVersion = retriever.getLatestArtifactVersion(groupId, artifactId);
+      ArtifactVersion artifactVersion =
+          ArtifactRetriever.DEFAULT.getLatestArtifactVersion(groupId, artifactId);
       if (artifactVersion != null) {
         version = artifactVersion.toString();
       }
