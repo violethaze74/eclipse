@@ -16,9 +16,8 @@
 
 package com.google.cloud.tools.eclipse.dataflow.ui.preferences;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import com.google.api.client.auth.oauth2.Credential;
+import com.google.api.client.googleapis.json.GoogleJsonResponseException;
 import com.google.cloud.tools.eclipse.dataflow.core.preferences.DataflowPreferences;
 import com.google.cloud.tools.eclipse.dataflow.core.project.FetchStagingLocationsJob;
 import com.google.cloud.tools.eclipse.dataflow.core.project.GcsDataflowProjectClient;
@@ -30,7 +29,9 @@ import com.google.cloud.tools.eclipse.dataflow.ui.Messages;
 import com.google.cloud.tools.eclipse.dataflow.ui.page.MessageTarget;
 import com.google.cloud.tools.eclipse.dataflow.ui.util.ButtonFactory;
 import com.google.cloud.tools.eclipse.dataflow.ui.util.SelectFirstMatchingPrefixListener;
+import com.google.cloud.tools.eclipse.googleapis.GcpProjectServicesJob;
 import com.google.cloud.tools.eclipse.googleapis.IGoogleApiFactory;
+import com.google.cloud.tools.eclipse.googleapis.internal.GoogleApi;
 import com.google.cloud.tools.eclipse.login.IGoogleLoginService;
 import com.google.cloud.tools.eclipse.login.ui.AccountSelector;
 import com.google.cloud.tools.eclipse.projectselector.MiniSelector;
@@ -44,6 +45,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableSortedSet;
+import java.util.Collection;
 import java.util.Objects;
 import java.util.SortedSet;
 import org.eclipse.core.runtime.IStatus;
@@ -99,6 +101,9 @@ public class RunOptionsDefaultsComponent {
   private final MiniSelector projectInput;
   private final Combo stagingLocationInput;
   private final Button createButton;
+
+  private GcpProjectServicesJob checkProjectConfigurationJob;
+  private VerifyStagingLocationJob verifyJob;
   private SelectFirstMatchingPrefixListener completionListener;
   private ControlDecoration stagingLocationResults;
 
@@ -123,7 +128,8 @@ public class RunOptionsDefaultsComponent {
   RunOptionsDefaultsComponent(Composite target, int columns, MessageTarget messageTarget,
       DataflowPreferences preferences, WizardPage page, boolean allowIncomplete,
       IGoogleLoginService loginService, IGoogleApiFactory apiFactory) {
-    checkArgument(columns >= 3, "DefaultRunOptions must be in a Grid with at least 3 columns"); //$NON-NLS-1$
+    Preconditions.checkArgument(columns >= 3,
+        "DefaultRunOptions must be in a Grid with at least 3 columns"); //$NON-NLS-1$
     this.target = target;
     this.page = page;
     this.messageTarget = messageTarget;
@@ -195,6 +201,7 @@ public class RunOptionsDefaultsComponent {
       @Override
       public void selectionChanged(SelectionChangedEvent event) {
         updateStagingLocations(0); // no delay
+        checkProjectConfiguration();
         validate();
       }
     });
@@ -246,6 +253,30 @@ public class RunOptionsDefaultsComponent {
       return;
     }
 
+    if (checkProjectConfigurationJob != null && checkProjectConfigurationJob.isCurrent()) {
+      Optional<Object> result = checkProjectConfigurationJob.getComputation();
+      if (!result.isPresent()) {
+        messageTarget.setInfo("Verifying that project is enabled for dataflow...");
+        return;
+      } else if (result.get() instanceof Exception) {
+        DataflowUiPlugin.logError((Exception) result.get(),
+            "Error checking project config for " + checkProjectConfigurationJob.getProjectId());
+        if (result.get() instanceof GoogleJsonResponseException) {
+          GoogleJsonResponseException exception = (GoogleJsonResponseException) result.get();
+          messageTarget.setError("Error checking project: " + exception.getDetails().getMessage());
+        } else {
+          messageTarget.setError("Could not check project: " + result.get());
+        }
+        return;
+      } else {
+        Verify.verify(result.get() instanceof Collection);
+        if (!((Collection<?>) result.get()).contains(GoogleApi.DATAFLOW_API.getServiceId())) {
+          messageTarget.setError("Project is not enabled for Cloud Dataflow");
+          return;
+        }
+      }
+    }
+    
     stagingLocationInput.setEnabled(true);
 
     // fetchStagingLocationsJob is a proxy for project checking
@@ -254,9 +285,9 @@ public class RunOptionsDefaultsComponent {
           && fetchStagingLocationsJob.isComputationComplete()) {
         Optional<Exception> error = fetchStagingLocationsJob.getComputationError();
         if (error.isPresent()) {
+          DataflowUiPlugin.logError(error.get(), "Exception while retrieving staging locations"); //$NON-NLS-1$
           messageTarget.setError(Messages.getString("could.not.retrieve.buckets.for.project", //$NON-NLS-1$
               projectInput.getProject().getName()));
-          DataflowUiPlugin.logError(error.get(), "Exception while retrieving staging locations"); //$NON-NLS-1$
           return;
         }
       } else {
@@ -307,6 +338,34 @@ public class RunOptionsDefaultsComponent {
         createButton.setEnabled(true);
       }
     }
+  }
+
+  protected void checkProjectConfiguration() {
+    Credential selectedCredential = accountSelector.getSelectedCredential();
+    if (selectedCredential == null) {
+      return;
+    }
+    GcpProject project = projectInput.getProject();
+    if (project == null) {
+      return;
+    }
+    if (checkProjectConfigurationJob != null) {
+      if (project.getId().equals(checkProjectConfigurationJob.getProjectId())) {
+        // already in progress
+        return;
+      }
+      checkProjectConfigurationJob.cancel();
+    }
+
+    checkProjectConfigurationJob =
+        new GcpProjectServicesJob(apiFactory, selectedCredential, project.getId());
+    checkProjectConfigurationJob.getFuture().addListener(new Runnable() {
+      @Override
+      public void run() {
+        validate();
+      }
+    }, displayExecutor);
+    checkProjectConfigurationJob.schedule();
   }
 
   private GcsDataflowProjectClient getGcsClient() {
