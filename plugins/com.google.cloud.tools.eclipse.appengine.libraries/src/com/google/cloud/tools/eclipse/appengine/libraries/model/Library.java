@@ -24,7 +24,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.TreeMap;
 
+import org.apache.maven.artifact.versioning.ComparableVersion;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.Path;
@@ -200,11 +202,46 @@ public final class Library {
         Collection<LibraryFile> dependencies = LibraryFactory.loadTransitiveDependencies(coordinates);
         transitiveDependencies.addAll(dependencies);
       }
-      this.libraryFiles = transitiveDependencies;
+      
+      this.libraryFiles = resolveDuplicates(transitiveDependencies);
       this.resolved = true;
     }
-  }
+  }  
   
+  /**
+   * Strip out different versions of the same library, retaining only the most recent.
+   *
+   * @return a new list containing the most recent version of each dependency
+   */
+  public static List<LibraryFile> resolveDuplicates(List<LibraryFile> dependencies) {
+    TreeMap<String, LibraryFile> map = new TreeMap<>();
+    for (LibraryFile file : dependencies) {
+      MavenCoordinates coordinates = file.getMavenCoordinates();
+      String key = coordinates.getGroupId() + ":" + coordinates.getArtifactId();
+      if (map.containsKey(key)) {
+        MavenCoordinates previousCoordinates = map.get(key).getMavenCoordinates();
+        if (newer(coordinates, previousCoordinates)) {
+          map.put(key, file);
+        }
+      } else {
+        map.put(key, file);
+      }
+      
+    }
+    return new ArrayList<>(map.values());
+  }
+
+  private static boolean newer(MavenCoordinates coordinates, MavenCoordinates previousCoordinates) {
+    try {
+      ComparableVersion version1 = new ComparableVersion(coordinates.getVersion());
+      ComparableVersion version2 = new ComparableVersion(previousCoordinates.getVersion());
+      
+      return version1.compareTo(version2) > 0;
+    } catch (IllegalArgumentException ex) {
+      return false;
+    }
+  }
+
   /**
    * @return a string suitable for debugging
    */
