@@ -34,10 +34,20 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
-
+import org.junit.Before;
 import org.junit.Test;
 
 public class LibraryFileTest {
+
+  private MavenCoordinates mavenCoordinates;
+
+  @Before
+  public void setUp() {
+    mavenCoordinates = new MavenCoordinates.Builder()
+        .setGroupId("groupId")
+        .setArtifactId("artifactId")
+        .build();
+  }
 
   @Test(expected = NullPointerException.class)
   public void testConstructorNullArgument() {
@@ -46,14 +56,12 @@ public class LibraryFileTest {
 
   @Test
   public void testConstructor() {
-    MavenCoordinates mavenCoordinates = new MavenCoordinates("groupId", "artifactId");
     LibraryFile libraryFile = new LibraryFile(mavenCoordinates);
     assertSame(mavenCoordinates, libraryFile.getMavenCoordinates());
   }
 
   @Test
   public void testSetNullFilters() {
-    MavenCoordinates mavenCoordinates = new MavenCoordinates("groupId", "artifactId");
     LibraryFile libraryFile = new LibraryFile(mavenCoordinates);
     libraryFile.setFilters(null);
     assertNotNull(libraryFile.getFilters());
@@ -62,7 +70,6 @@ public class LibraryFileTest {
 
   @Test
   public void testSetExclusionFilters() {
-    MavenCoordinates mavenCoordinates = new MavenCoordinates("groupId", "artifactId");
     LibraryFile libraryFile = new LibraryFile(mavenCoordinates);
     List<Filter> exclusionFilters = Collections.singletonList(Filter.exclusionFilter("filter"));
     libraryFile.setFilters(exclusionFilters);
@@ -73,7 +80,6 @@ public class LibraryFileTest {
 
   @Test
   public void testSetFilters_preservesOrder() {
-    MavenCoordinates mavenCoordinates = new MavenCoordinates("groupId", "artifactId");
     LibraryFile libraryFile = new LibraryFile(mavenCoordinates);
     List<Filter> filters = Arrays.asList(Filter.exclusionFilter("exclusionFilter1"),
                                          Filter.inclusionFilter("inclusionFilter1"),
@@ -94,7 +100,6 @@ public class LibraryFileTest {
 
   @Test
   public void setNullJavadocUri() {
-    MavenCoordinates mavenCoordinates = new MavenCoordinates("groupId", "artifactId");
     LibraryFile libraryFile = new LibraryFile(mavenCoordinates);
     libraryFile.setJavadocUri(null);
     assertNull(libraryFile.getJavadocUri());
@@ -102,7 +107,6 @@ public class LibraryFileTest {
 
   @Test
   public void setJavadocUri() throws URISyntaxException {
-    MavenCoordinates mavenCoordinates = new MavenCoordinates("groupId", "artifactId");
     LibraryFile libraryFile = new LibraryFile(mavenCoordinates);
     libraryFile.setJavadocUri(new URI("http://example.com"));
     assertThat(libraryFile.getJavadocUri().toString(), is("http://example.com"));
@@ -110,7 +114,6 @@ public class LibraryFileTest {
 
   @Test
   public void setNullSourceUri() {
-    MavenCoordinates mavenCoordinates = new MavenCoordinates("groupId", "artifactId");
     LibraryFile libraryFile = new LibraryFile(mavenCoordinates);
     libraryFile.setSourceUri(null);
     assertNull(libraryFile.getSourceUri());
@@ -118,7 +121,6 @@ public class LibraryFileTest {
 
   @Test
   public void setSourceUri() throws URISyntaxException {
-    MavenCoordinates mavenCoordinates = new MavenCoordinates("groupId", "artifactId");
     LibraryFile libraryFile = new LibraryFile(mavenCoordinates);
     libraryFile.setSourceUri(new URI("http://example.com"));
     assertThat(libraryFile.getSourceUri().toString(), is("http://example.com"));
@@ -126,14 +128,12 @@ public class LibraryFileTest {
 
   @Test
   public void testExportDefaultsToTrue() {
-    MavenCoordinates mavenCoordinates = new MavenCoordinates("groupId", "artifactId");
     LibraryFile libraryFile = new LibraryFile(mavenCoordinates);
     assertTrue(libraryFile.isExport());
   }
 
   @Test
   public void testSetExport() {
-    MavenCoordinates mavenCoordinates = new MavenCoordinates("groupId", "artifactId");
     LibraryFile libraryFile = new LibraryFile(mavenCoordinates);
     libraryFile.setExport(false);
     assertFalse(libraryFile.isExport());
@@ -141,7 +141,6 @@ public class LibraryFileTest {
   
   @Test
   public void testToString() {
-    MavenCoordinates mavenCoordinates = new MavenCoordinates("groupId", "artifactId");
     LibraryFile libraryFile = new LibraryFile(mavenCoordinates);
     assertEquals("groupId:artifactId:LATEST", libraryFile.toString());
   }
