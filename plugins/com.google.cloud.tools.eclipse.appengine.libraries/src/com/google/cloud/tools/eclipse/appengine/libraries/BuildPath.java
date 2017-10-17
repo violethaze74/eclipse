@@ -158,7 +158,11 @@ public class BuildPath {
     
     List<LibraryFile> resolved = Library.resolveDuplicates(new ArrayList<LibraryFile>(masterFiles));
     subMonitor.worked(8);
+    
     masterLibrary.setLibraryFiles(resolved);
+    
+    masterLibrary.setResolved();
+    
     subMonitor.worked(1);
 
     return masterLibrary;
