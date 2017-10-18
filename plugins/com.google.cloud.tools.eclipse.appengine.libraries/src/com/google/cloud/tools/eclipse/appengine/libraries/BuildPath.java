@@ -119,7 +119,7 @@ public class BuildPath {
    * @return the master library
    */
   public static Library collectLibraryFiles(IJavaProject javaProject, List<Library> libraries,
-      IProgressMonitor monitor) throws CoreException {
+      IProgressMonitor monitor) {
     
     SubMonitor subMonitor = SubMonitor.convert(monitor,
         Messages.getString("calculating.dependencies"), //$NON-NLS-1$
