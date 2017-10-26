@@ -18,7 +18,6 @@ package com.google.cloud.tools.eclipse.appengine.newproject.flex;
 
 import com.google.cloud.tools.eclipse.appengine.facets.AppEngineFlexWarFacet;
 import com.google.cloud.tools.eclipse.appengine.facets.FacetUtil;
-import com.google.cloud.tools.eclipse.appengine.facets.WebProjectUtil;
 import com.google.cloud.tools.eclipse.appengine.libraries.model.MavenCoordinates;
 import com.google.cloud.tools.eclipse.appengine.libraries.repository.ILibraryRepositoryService;
 import com.google.cloud.tools.eclipse.appengine.newproject.AppEngineProjectConfig;
@@ -57,7 +56,6 @@ import org.eclipse.wst.common.project.facet.core.ProjectFacetsManager;
 public class CreateAppEngineFlexWtpProject extends CreateAppEngineWtpProject {
 
   private static final List<MavenCoordinates> SERVLET_DEPENDENCIES;
-  private static final List<MavenCoordinates> PROJECT_DEPENDENCIES;
 
   static {
     // servlet-api and jsp-api are marked as not being included
@@ -71,13 +69,6 @@ public class CreateAppEngineFlexWtpProject extends CreateAppEngineWtpProject {
         .setVersion("2.3.1") //$NON-NLS-1$
         .build();
     SERVLET_DEPENDENCIES = ImmutableList.of(servletApi, jsp);
-
-    MavenCoordinates jstl = new MavenCoordinates.Builder().setGroupId("jstl") //$NON-NLS-1$
-        .setArtifactId("jstl") //$NON-NLS-1$
-        .setVersion("1.2") //$NON-NLS-1$
-        .build();
-    PROJECT_DEPENDENCIES = ImmutableList.of(jstl);
-
   }
 
   CreateAppEngineFlexWtpProject(AppEngineProjectConfig config, IAdaptable uiInfoAdapter,
@@ -163,25 +154,5 @@ public class CreateAppEngineFlexWtpProject extends CreateAppEngineWtpProject {
 
     ClasspathUtil.addClasspathEntries(project, newEntries, monitor);
   }
-
-  @Override
-  protected void addAdditionalDependencies(IProject newProject, IProgressMonitor monitor)
-      throws CoreException {
-    SubMonitor progress = SubMonitor.convert(monitor, 20);
-    super.addAdditionalDependencies(newProject, progress.newChild(10));
-
-    // locate WEB-INF/lib
-    IFolder webInfFolder = WebProjectUtil.getWebInfDirectory(newProject);
-    IFolder libFolder = webInfFolder.getFolder("lib"); //$NON-NLS-1$
-    if (!libFolder.exists()) {
-      libFolder.create(true, true, progress.newChild(5));
-    }
-
-    progress.setWorkRemaining(PROJECT_DEPENDENCIES.size());
-    for (MavenCoordinates dependency : PROJECT_DEPENDENCIES) {
-      installArtifact(dependency, libFolder, progress.newChild(10));
-    }
-  }
-
 
 }
