@@ -64,7 +64,7 @@ import org.osgi.framework.FrameworkUtil;
  *
  * <p>The JavaLaunchDelegate is responsible for most of the launching.
  */
-public class DataflowPipelineLaunchDelegate extends ForwardingLaunchConfigurationDelegate {
+public class DataflowPipelineLaunchDelegate implements ILaunchConfigurationDelegate2 {
   private static final String ARGUMENT_FORMAT_STR = "--%s=%s";
 
   @VisibleForTesting
@@ -252,7 +252,25 @@ public class DataflowPipelineLaunchDelegate extends ForwardingLaunchConfiguratio
   }
 
   @Override
-  protected ILaunchConfigurationDelegate2 delegate() {
-    return delegate;
+  public ILaunch getLaunch(ILaunchConfiguration configuration, String mode) throws CoreException {
+    return delegate.getLaunch(configuration, mode);
+  }
+
+  @Override
+  public boolean buildForLaunch(ILaunchConfiguration configuration, String mode,
+      IProgressMonitor monitor) throws CoreException {
+    return delegate.buildForLaunch(configuration, mode, monitor);
+  }
+
+  @Override
+  public boolean finalLaunchCheck(ILaunchConfiguration configuration, String mode,
+      IProgressMonitor monitor) throws CoreException {
+    return delegate.finalLaunchCheck(configuration, mode, monitor);
+  }
+
+  @Override
+  public boolean preLaunchCheck(ILaunchConfiguration configuration, String mode,
+      IProgressMonitor monitor) throws CoreException {
+    return delegate.preLaunchCheck(configuration, mode, monitor);
   }
 }
