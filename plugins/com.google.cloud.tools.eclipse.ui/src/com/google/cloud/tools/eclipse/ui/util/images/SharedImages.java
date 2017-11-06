@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Google Inc.
+ * Copyright 2017 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,22 +14,18 @@
  * limitations under the License.
  */
 
-package com.google.cloud.tools.eclipse.appengine.ui;
+package com.google.cloud.tools.eclipse.ui.util.images;
 
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 
-/**
- * Accessors for shared icons.
- */
-public class AppEngineImages {
-  public static ImageDescriptor appEngine(int size) {
-    String imageFilePath = "icons/gae-" + size + "x" + size + ".png";
-    return getIcon(imageFilePath);
-  }
+public class SharedImages {
 
-  private static ImageDescriptor getIcon(String path) {
-    return AbstractUIPlugin.imageDescriptorFromPlugin(
-        "com.google.cloud.tools.eclipse.appengine.ui", path);
-  }
+  public static final ImageDescriptor CLOUDSDK_IMAGE_DESCRIPTOR =
+      AbstractUIPlugin.imageDescriptorFromPlugin("com.google.cloud.tools.eclipse.ui",
+          "icons/obj16/cloudsdk.png");
+
+  public static final ImageDescriptor REFRESH_IMAGE_DESCRIPTOR =
+      AbstractUIPlugin.imageDescriptorFromPlugin("org.eclipse.debug.ui",
+                                                 "icons/full/obj16/refresh_tab.png");
 }
