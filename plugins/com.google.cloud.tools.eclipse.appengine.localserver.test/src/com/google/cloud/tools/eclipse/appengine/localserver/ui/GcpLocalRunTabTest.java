@@ -17,9 +17,12 @@
 package com.google.cloud.tools.eclipse.appengine.localserver.ui;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyMap;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.never;
@@ -48,6 +51,7 @@ import org.eclipse.debug.core.ILaunchManager;
 import org.eclipse.debug.ui.EnvironmentTab;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -114,6 +118,21 @@ public class GcpLocalRunTabTest {
     assertNotNull(serviceKeyText);
   }
 
+  @After
+  public void tearDown() {
+    tab.dispose();
+  }
+
+  @Test
+  public void testGetName() {
+    assertEquals("Cloud Platform", tab.getName());
+  }
+
+  @Test
+  public void testGetImage() {
+    assertNotNull(tab.getImage());
+  }
+
   @Test
   public void testGetAttribute() throws CoreException {
     when(launchConfig.getAttribute(eq("attribute-key"), anyString())).thenReturn("expected value");
@@ -137,7 +156,7 @@ public class GcpLocalRunTabTest {
   @Test
   public void testGetEnvironmentMap() throws CoreException {
     Map<String, String> map = new HashMap<>();
-    when(launchConfig.getAttribute(eq(ILaunchManager.ATTR_ENVIRONMENT_VARIABLES), any(Map.class)))
+    when(launchConfig.getAttribute(eq(ILaunchManager.ATTR_ENVIRONMENT_VARIABLES), anyMap()))
         .thenReturn(map);
     assertEquals(map, GcpLocalRunTab.getEnvironmentMap(launchConfig));
   }
@@ -209,7 +228,7 @@ public class GcpLocalRunTabTest {
     Map<String, String> environmentMap = new HashMap<>();
     environmentMap.put("GOOGLE_CLOUD_PROJECT", gcpProjectId);
     environmentMap.put("GOOGLE_APPLICATION_CREDENTIALS", serviceKey);
-    when(launchConfig.getAttribute(eq(ILaunchManager.ATTR_ENVIRONMENT_VARIABLES), any(Map.class)))
+    when(launchConfig.getAttribute(eq(ILaunchManager.ATTR_ENVIRONMENT_VARIABLES), anyMap()))
         .thenReturn(environmentMap);
   }
 
@@ -247,14 +266,51 @@ public class GcpLocalRunTabTest {
 
     verify(launchConfig, never()).setAttribute(
         "com.google.cloud.tools.eclipse.gcpEmulation.accountEmail", "email-2@example.com");
-    verify(launchConfig, never()).setAttribute(eq(ILaunchManager.ATTR_ENVIRONMENT_VARIABLES),
-        any(Map.class));
+    verify(launchConfig, never()).setAttribute(
+        eq(ILaunchManager.ATTR_ENVIRONMENT_VARIABLES), anyMap());
   }
 
   @Test
-  public void testPerformApply_updatesEnvironmentTab() {
+  public void testPerformApply_updatesEnvironmentTab() throws CoreException {
+    when(launchConfig.getAttribute(anyString(), anyString()))
+      .thenAnswer(AdditionalAnswers.returnsSecondArg());
     tab.activated(launchConfig);
     tab.deactivated(launchConfig);
     verify(environmentTab).initializeFrom(any(ILaunchConfiguration.class));
+    verify(environmentTab).performApply(any(ILaunchConfigurationWorkingCopy.class));
+  }
+
+  @Test
+  public void testIsValid_defaultValues() {
+    assertTrue(tab.isValid(launchConfig));
+    assertNull(tab.getErrorMessage());
+  }
+
+  @Test
+  public void testIsValid_nullServiceKey() throws CoreException {
+    mockLaunchConfig("email", "gcpProjectId", null /* serviceKey */);
+    assertTrue(tab.isValid(launchConfig));
+    assertNull(tab.getErrorMessage());
+  }
+
+  @Test
+  public void testIsValid_emptyServiceKey() throws CoreException {
+    mockLaunchConfig("email", "gcpProjectId", "" /* serviceKey */);
+    assertTrue(tab.isValid(launchConfig));
+    assertNull(tab.getErrorMessage());
+  }
+
+  @Test
+  public void testIsValid_nonExistingServicekeyPath() throws CoreException {
+    mockLaunchConfig("email", "gcpProjectId", "/non/existing/file.ever");
+    assertFalse(tab.isValid(launchConfig));
+    assertEquals("/non/existing/file.ever does not exist.", tab.getErrorMessage());
+  }
+
+  @Test
+  public void testIsValid_servicekeyPathIsDirectory() throws CoreException {
+    mockLaunchConfig("email", "gcpProjectId", "/");
+    assertFalse(tab.isValid(launchConfig));
+    assertEquals("/ is a directory.", tab.getErrorMessage());
   }
 }
