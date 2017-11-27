@@ -18,6 +18,7 @@ package com.google.cloud.tools.eclipse.appengine.localserver.ui;
 
 import com.google.api.client.auth.oauth2.Credential;
 import com.google.cloud.tools.eclipse.appengine.localserver.Messages;
+import com.google.cloud.tools.eclipse.appengine.localserver.ServiceAccountUtil;
 import com.google.cloud.tools.eclipse.googleapis.IGoogleApiFactory;
 import com.google.cloud.tools.eclipse.login.IGoogleLoginService;
 import com.google.cloud.tools.eclipse.login.ui.AccountSelector;
@@ -28,8 +29,11 @@ import com.google.cloud.tools.eclipse.projectselector.model.GcpProject;
 import com.google.cloud.tools.eclipse.ui.util.event.FileFieldSetter;
 import com.google.cloud.tools.eclipse.ui.util.images.SharedImages;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -38,11 +42,15 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.Platform;
 import org.eclipse.debug.core.ILaunchConfiguration;
 import org.eclipse.debug.core.ILaunchConfigurationWorkingCopy;
 import org.eclipse.debug.core.ILaunchManager;
 import org.eclipse.debug.ui.AbstractLaunchConfigurationTab;
 import org.eclipse.debug.ui.EnvironmentTab;
+import org.eclipse.jface.fieldassist.ControlDecoration;
+import org.eclipse.jface.fieldassist.FieldDecoration;
+import org.eclipse.jface.fieldassist.FieldDecorationRegistry;
 import org.eclipse.jface.layout.GridDataFactory;
 import org.eclipse.jface.layout.GridLayoutFactory;
 import org.eclipse.jface.viewers.ISelectionChangedListener;
@@ -51,6 +59,8 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.BusyIndicator;
 import org.eclipse.swt.events.ModifyEvent;
 import org.eclipse.swt.events.ModifyListener;
+import org.eclipse.swt.events.SelectionAdapter;
+import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
@@ -74,11 +84,15 @@ public class GcpLocalRunTab extends AbstractLaunchConfigurationTab {
 
   private final EnvironmentTab environmentTab;
   private final IGoogleLoginService loginService;
+  private final IGoogleApiFactory googleApiFactory;
   private final ProjectRepository projectRepository;
 
   private AccountSelector accountSelector;
   private ProjectSelector projectSelector;
   private Text serviceKeyInput;
+  private Button createServiceKey;
+  @VisibleForTesting
+  ControlDecoration serviceKeyDecoration;
 
   // We set up intermediary models between a run configuration and UI components for certain values,
   // because, e.g., the account selector cannot load an email if it is not logged in. In such a
@@ -98,15 +112,18 @@ public class GcpLocalRunTab extends AbstractLaunchConfigurationTab {
   private boolean activated;
 
   public GcpLocalRunTab(EnvironmentTab environmentTab) {
-    this(environmentTab, PlatformUI.getWorkbench().getService(IGoogleLoginService.class),
+    this(environmentTab,
+        PlatformUI.getWorkbench().getService(IGoogleLoginService.class),
+        PlatformUI.getWorkbench().getService(IGoogleApiFactory.class),
         new ProjectRepository(PlatformUI.getWorkbench().getService(IGoogleApiFactory.class)));
   }
 
   @VisibleForTesting
-  GcpLocalRunTab(EnvironmentTab environmentTab,
-      IGoogleLoginService loginService, ProjectRepository projectRepository) {
+  GcpLocalRunTab(EnvironmentTab environmentTab, IGoogleLoginService loginService,
+      IGoogleApiFactory googleApiFactory, ProjectRepository projectRepository) {
     this.environmentTab = environmentTab;
     this.loginService = loginService;
+    this.googleApiFactory = googleApiFactory;
     this.projectRepository = projectRepository;
   }
 
@@ -170,8 +187,10 @@ public class GcpLocalRunTab extends AbstractLaunchConfigurationTab {
     projectSelector.addSelectionChangedListener(new ISelectionChangedListener() {
       @Override
       public void selectionChanged(SelectionChangedEvent event) {
+        boolean projectSelected = !projectSelector.getSelection().isEmpty();
+        createServiceKey.setEnabled(projectSelected);
+
         if (!initializingUiValues) {
-          boolean projectSelected = !projectSelector.getSelectProjectId().isEmpty();
           boolean savedIdAvailable = projectSelector.isProjectIdAvailable(gcpProjectIdModel);
           // 1. If some project is selected, always save it.
           // 2. Otherwise (no project selected), clear the saved project only when it is certain
@@ -198,6 +217,7 @@ public class GcpLocalRunTab extends AbstractLaunchConfigurationTab {
     serviceKeyInput.addModifyListener(new ModifyListener() {
       @Override
       public void modifyText(ModifyEvent event) {
+        serviceKeyDecoration.hide();
         updateLaunchConfigurationDialog();
       }
     });
@@ -206,15 +226,35 @@ public class GcpLocalRunTab extends AbstractLaunchConfigurationTab {
     String[] filterExtensions = new String[] {"*.json"}; //$NON-NLS-1$
     browse.addSelectionListener(new FileFieldSetter(serviceKeyInput, filterExtensions));
 
-    GridDataFactory.fillDefaults().align(SWT.BEGINNING, SWT.TOP).applyTo(projectLabel);
-    GridDataFactory.fillDefaults().span(2, 1).applyTo(accountSelector);
-    GridLayoutFactory.swtDefaults().numColumns(3).generateLayout(composite);
+    serviceKeyDecoration = new ControlDecoration(serviceKeyInput, SWT.LEAD | SWT.TOP);
+    serviceKeyDecoration.hide();
 
-    GridDataFactory.fillDefaults().span(2, 1).applyTo(projectSelectorComposite);
+    createServiceKey = new Button(composite, SWT.NONE);
+    createServiceKey.setText(Messages.getString("create.new.service.key")); //$NON-NLS-1$
+    createServiceKey.setToolTipText(
+        Messages.getString("create.new.service.key.tooltip")); //$NON-NLS-1$
+    createServiceKey.addSelectionListener(new SelectionAdapter() {
+      @Override
+      public void widgetSelected(SelectionEvent event) {
+        BusyIndicator.showWhile(createServiceKey.getDisplay(), new Runnable() {
+          @Override
+          public void run() {
+            createServiceAccountKey(getServiceAccountKeyPath());
+          }});
+      }
+    });
+
+    GridDataFactory.fillDefaults().align(SWT.BEGINNING, SWT.TOP).applyTo(projectLabel);
+    GridDataFactory.fillDefaults().span(3, 1).applyTo(accountSelector);
+    GridDataFactory.swtDefaults().align(SWT.END, SWT.CENTER).applyTo(createServiceKey);
+
+    GridDataFactory.fillDefaults().span(3, 1).applyTo(projectSelectorComposite);
     GridDataFactory.fillDefaults().applyTo(filterField);
     GridDataFactory.fillDefaults().grab(true, false).hint(300, 200)
         .applyTo(projectSelector);
+
     GridLayoutFactory.fillDefaults().spacing(0, 0).generateLayout(projectSelectorComposite);
+    GridLayoutFactory.swtDefaults().numColumns(4).generateLayout(composite);
 
     setControl(composite);
   }
@@ -357,5 +397,52 @@ public class GcpLocalRunTab extends AbstractLaunchConfigurationTab {
       logger.log(Level.WARNING, "Can't get value from launch configuration.", e); //$NON-NLS-1$
       return emptyMap;
     }
+  }
+
+  @VisibleForTesting
+  Path getServiceAccountKeyPath() {
+    Preconditions.checkState(!projectSelector.getSelection().isEmpty());
+
+    String projectId = projectSelector.getSelectProjectId();
+    String filename = "app-engine-default-service-account-key-" //$NON-NLS-1$
+        + projectId + ".json"; //$NON-NLS-1$
+    String configurationLocation = Platform.getConfigurationLocation().getURL().getPath();
+    return Paths.get(configurationLocation + "/com.google.cloud.tools.eclipse/" + filename);
+  }
+
+  @VisibleForTesting
+  void createServiceAccountKey(Path keyFile) {
+    Credential credential = accountSelector.getSelectedCredential();
+    String projectId = projectSelector.getSelectProjectId();
+    Preconditions.checkNotNull(credential, "account not selected"); //$NON-NLS-1$
+    Preconditions.checkState(!projectId.isEmpty(), "project not selected"); //$NON-NLS-1$
+
+    try {
+      String appEngineServiceAccountId = projectId + "@appspot.gserviceaccount.com"; //$NON-NLS-1$
+
+      ServiceAccountUtil.createServiceAccountKey(googleApiFactory,
+          credential, projectId, appEngineServiceAccountId, keyFile);
+
+      serviceKeyInput.setText(keyFile.toString());
+      String message = Messages.getString("service.key.created", keyFile); //$NON-NLS-1$
+      showServiceKeyDecorationMessage(message, false /* isError */);
+
+    } catch (IOException e) {
+      logger.log(Level.SEVERE, e.getMessage(), e);
+      String message = Messages.getString("cannot.create.service.key",  //$NON-NLS-1$
+          e.getLocalizedMessage());
+      showServiceKeyDecorationMessage(message, true /* isError */);
+    }
+  }
+
+  private void showServiceKeyDecorationMessage(String message, boolean isError) {
+    FieldDecorationRegistry registry = FieldDecorationRegistry.getDefault();
+    FieldDecoration fieldDecoration = registry.getFieldDecoration(
+        isError ? FieldDecorationRegistry.DEC_ERROR : FieldDecorationRegistry.DEC_INFORMATION);
+
+    serviceKeyDecoration.show();
+    serviceKeyDecoration.setImage(fieldDecoration.getImage());
+    serviceKeyDecoration.setDescriptionText(message);
+    serviceKeyDecoration.showHoverText(message);
   }
 }

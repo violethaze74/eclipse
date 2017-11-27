@@ -16,10 +16,13 @@
 
 package com.google.cloud.tools.eclipse.appengine.localserver.ui;
 
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyMap;
@@ -30,6 +33,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.api.client.auth.oauth2.Credential;
+import com.google.cloud.tools.eclipse.appengine.localserver.ServiceAccountUtilTest;
+import com.google.cloud.tools.eclipse.googleapis.IGoogleApiFactory;
 import com.google.cloud.tools.eclipse.login.IGoogleLoginService;
 import com.google.cloud.tools.eclipse.login.ui.AccountSelector;
 import com.google.cloud.tools.eclipse.projectselector.ProjectRepository;
@@ -39,22 +44,33 @@ import com.google.cloud.tools.eclipse.projectselector.model.GcpProject;
 import com.google.cloud.tools.eclipse.test.util.ui.CompositeUtil;
 import com.google.cloud.tools.eclipse.test.util.ui.ShellTestResource;
 import com.google.cloud.tools.login.Account;
+import com.google.common.base.Predicate;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.Platform;
 import org.eclipse.debug.core.ILaunchConfiguration;
 import org.eclipse.debug.core.ILaunchConfigurationWorkingCopy;
 import org.eclipse.debug.core.ILaunchManager;
 import org.eclipse.debug.ui.EnvironmentTab;
+import org.eclipse.jface.viewers.StructuredSelection;
+import org.eclipse.swt.widgets.Button;
+import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.mockito.AdditionalAnswers;
 import org.mockito.ArgumentCaptor;
@@ -66,8 +82,10 @@ import org.mockito.runners.MockitoJUnitRunner;
 public class GcpLocalRunTabTest {
 
   @Rule public ShellTestResource shellResource = new ShellTestResource();
+  @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
 
   @Mock private IGoogleLoginService loginService;
+  @Mock private IGoogleApiFactory apiFactory;
   @Mock private ProjectRepository projectRepository;
   @Mock private EnvironmentTab environmentTab;
 
@@ -93,6 +111,7 @@ public class GcpLocalRunTabTest {
   private AccountSelector accountSelector;
   private ProjectSelector projectSelector;
   private Text serviceKeyText;
+  private Path keyFile;
 
   @Before
   public void setUp() throws ProjectRepositoryException {
@@ -107,7 +126,7 @@ public class GcpLocalRunTabTest {
     when(projectRepository.getProjects(credential1)).thenReturn(projectsOfEmail1);
     when(projectRepository.getProjects(credential2)).thenReturn(projectsOfEmail2);
 
-    tab = new GcpLocalRunTab(environmentTab, loginService, projectRepository);
+    tab = new GcpLocalRunTab(environmentTab, loginService, apiFactory, projectRepository);
     tab.createControl(shell);
 
     accountSelector = CompositeUtil.findControl(shell, AccountSelector.class);
@@ -116,6 +135,8 @@ public class GcpLocalRunTabTest {
     assertNotNull(accountSelector);
     assertNotNull(projectSelector);
     assertNotNull(serviceKeyText);
+
+    keyFile = tempFolder.getRoot().toPath().resolve("key.json");
   }
 
   @After
@@ -312,5 +333,88 @@ public class GcpLocalRunTabTest {
     mockLaunchConfig("email", "gcpProjectId", "/");
     assertFalse(tab.isValid(launchConfig));
     assertEquals("/ is a directory.", tab.getErrorMessage());
+  }
+
+  @Test
+  public void testCreateKeyButtonEnablement() {
+    Button createKeyButton = (Button) CompositeUtil.findControl(shell, new Predicate<Control>() {
+      @Override
+      public boolean apply(Control control) {
+        return control instanceof Button && "Create New Key".equals(((Button) control).getText());
+      }
+    });
+    tab.initializeFrom(launchConfig);
+
+    assertTrue(projectSelector.getSelection().isEmpty());
+    assertFalse(createKeyButton.isEnabled());
+
+    accountSelector.selectAccount("email-1@example.com");
+    projectSelector.selectProjectId("email-1-project-A");
+    assertTrue(createKeyButton.isEnabled());
+
+    projectSelector.setSelection(new StructuredSelection());
+    assertFalse(createKeyButton.isEnabled());
+  }
+
+  private void setUpServiceKeyCreation(boolean throwException) throws IOException, CoreException {
+    ServiceAccountUtilTest.setUpServiceKeyCreation(apiFactory, throwException);
+    mockLaunchConfig("email-1@example.com", "email-1-project-A", "");
+    tab.initializeFrom(launchConfig);
+  }
+
+  @Test
+  public void testCreateServiceAccountKey() throws IOException, CoreException {
+    setUpServiceKeyCreation(false);
+
+    tab.createServiceAccountKey(keyFile);
+
+    byte[] bytesRead = Files.readAllBytes(keyFile);
+    assertEquals("key data in JSON format", new String(bytesRead, StandardCharsets.UTF_8));
+  }
+
+  @Test
+  public void testCreateServiceAccountKey_replacesExistingKey() throws IOException, CoreException {
+    setUpServiceKeyCreation(false);
+
+    Files.write(keyFile, new byte[] {0, 1, 2});
+    tab.createServiceAccountKey(keyFile);
+
+    byte[] bytesRead = Files.readAllBytes(keyFile);
+    assertEquals("key data in JSON format", new String(bytesRead, StandardCharsets.UTF_8));
+  }
+
+  @Test
+  public void testCreateServiceAccountKey_uiResult() throws IOException, CoreException {
+    setUpServiceKeyCreation(false);
+
+    tab.createServiceAccountKey(keyFile);
+
+    assertEquals(keyFile.toString(), serviceKeyText.getText());
+    assertEquals("Created a service account key for the App Engine default service account:\n"
+        + keyFile, tab.serviceKeyDecoration.getDescriptionText());
+  }
+
+  @Test
+  public void testCreateServiceAccountKey_ioException() throws IOException, CoreException {
+    setUpServiceKeyCreation(true);
+
+    tab.createServiceAccountKey(keyFile);
+
+    assertFalse(Files.exists(keyFile));
+    assertThat(tab.serviceKeyDecoration.getDescriptionText(),
+        startsWith("Could not create a service account key:"));
+    assertThat(tab.serviceKeyDecoration.getDescriptionText(), containsString("log from unit test"));
+  }
+
+  @Test
+  public void testGetServiceAccountKeyPath() {
+    tab.initializeFrom(launchConfig);
+    accountSelector.selectAccount("email-1@example.com");
+    projectSelector.selectProjectId("email-1-project-A");
+
+    Path expected = Paths.get(Platform.getConfigurationLocation().getURL().getPath())
+        .resolve("com.google.cloud.tools.eclipse")
+        .resolve("app-engine-default-service-account-key-email-1-project-A.json");
+    assertEquals(expected, tab.getServiceAccountKeyPath());
   }
 }
