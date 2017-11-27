@@ -412,6 +412,8 @@ public class RunOptionsDefaultsComponent {
 
   public void setStagingLocationText(String stagingLocation) {
     stagingLocationInput.setText(stagingLocation);
+    // programmtically set so initiate check immediately
+    startStagingLocationCheck(0);
   }
 
   public void addAccountSelectionListener(Runnable listener) {
@@ -541,6 +543,8 @@ public class RunOptionsDefaultsComponent {
         return;
       }
       stagingLocationResults.hide();
+      // clear any error messages, such as bucket-does-not-exist
+      messageTarget.clear();
 
       GcpProject project = getProject();
       String stagingLocation = getStagingLocation();

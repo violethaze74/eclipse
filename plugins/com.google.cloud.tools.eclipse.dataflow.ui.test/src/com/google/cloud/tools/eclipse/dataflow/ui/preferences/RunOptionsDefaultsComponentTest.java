@@ -22,9 +22,11 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
@@ -42,6 +44,7 @@ import com.google.api.services.servicemanagement.ServiceManagement.Services;
 import com.google.api.services.servicemanagement.model.ListServicesResponse;
 import com.google.api.services.servicemanagement.model.ManagedService;
 import com.google.api.services.storage.Storage;
+import com.google.api.services.storage.Storage.Buckets.Insert;
 import com.google.api.services.storage.model.Bucket;
 import com.google.api.services.storage.model.Buckets;
 import com.google.cloud.tools.eclipse.dataflow.core.preferences.DataflowPreferences;
@@ -72,7 +75,10 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.stubbing.Answer;
 
 @RunWith(MockitoJUnitRunner.class)
 public class RunOptionsDefaultsComponentTest {
@@ -157,13 +163,29 @@ public class RunOptionsDefaultsComponentTest {
     Storage.Buckets bucketsApi = mock(Storage.Buckets.class);
     Storage.Buckets.List listApi = mock(Storage.Buckets.List.class);
     Buckets buckets = new Buckets();
-    List<Bucket> bucketList = new ArrayList<>();
+    final List<Bucket> bucketList = new ArrayList<>();
 
     doReturn(storageApi).when(apiFactory).newStorageApi(credential);
     doReturn(bucketsApi).when(storageApi).buckets();
     doThrow(new IOException("not found")).when(bucketsApi).list(anyString());
-    doReturn(listApi).when(bucketsApi).list(projectId);
+    doReturn(listApi).when(bucketsApi).list(eq(projectId));
     doReturn(buckets).when(listApi).execute();
+    
+    when(bucketsApi.insert(eq(projectId), any(Bucket.class))).thenAnswer(new Answer<Insert>() {
+      @Override
+      public Insert answer(InvocationOnMock invocation) throws Throwable {
+        final Bucket newBucket = invocation.getArgumentAt(1, Bucket.class);
+        Insert insert = mock(Insert.class);
+        when(insert.execute()).thenAnswer(new Answer<Bucket>() {
+          @Override
+          public Bucket answer(InvocationOnMock invocation) throws Throwable {
+            bucketList.add(newBucket);
+            return newBucket;
+          }
+        });
+        return insert;
+      }
+    });
 
     Storage.Buckets.Get exceptionGet = mock(Storage.Buckets.Get.class);
     when(bucketsApi.get(anyString())).thenReturn(exceptionGet);
@@ -389,6 +411,23 @@ public class RunOptionsDefaultsComponentTest {
     component.setStagingLocationText("gs://alice-bucket-2/object");
     join();
     verify(messageTarget, never()).setError(anyString());
+  }
+  
+  @Test
+  public void testBucketNameStatus_createIsOk() throws InterruptedException {
+    component.selectAccount("alice@example.com");
+    component.setCloudProjectText("project");
+    join();
+    component.setStagingLocationText("gs://alice-bucket-non-existent");
+    join();
+    Mockito.reset(messageTarget);
+    component.validate();
+    verify(messageTarget).setError("Could not fetch bucket alice-bucket-non-existent.");
+    
+    Mockito.reset(messageTarget);
+    new SWTBotButton(createButton).click();
+    join();
+    verify(messageTarget).setInfo("Created staging location at gs://alice-bucket-non-existent");
   }
 
   @Test
