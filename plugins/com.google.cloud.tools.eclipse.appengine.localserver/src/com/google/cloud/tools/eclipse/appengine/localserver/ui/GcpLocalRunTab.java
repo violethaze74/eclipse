@@ -102,7 +102,7 @@ public class GcpLocalRunTab extends AbstractLaunchConfigurationTab {
   private String gcpProjectIdModel;
   // To prevent updating above models when programmatically setting up UI components.
   private boolean initializingUiValues;
-
+  
   /**
    * True if this tab is the currently visible tab. See {@link
    * #performApply(ILaunchConfigurationWorkingCopy)} for details.
@@ -196,7 +196,7 @@ public class GcpLocalRunTab extends AbstractLaunchConfigurationTab {
           // 2. Otherwise (no project selected), clear the saved project only when it is certain
           // that the user explicitly removed selection (i.e., not because of logout).
           if (projectSelected || savedIdAvailable) {
-            gcpProjectIdModel = projectSelector.getSelectProjectId();
+            gcpProjectIdModel = projectSelector.getSelectedProjectId();
             updateLaunchConfigurationDialog();
           }
         }
@@ -303,7 +303,7 @@ public class GcpLocalRunTab extends AbstractLaunchConfigurationTab {
 
   @Override
   public void initializeFrom(ILaunchConfiguration configuration) {
-    accountEmailModel = getAttribute(configuration, ATTRIBUTE_ACCOUNT_EMAIL, ""); //$NON-NLS-1$
+    this.accountEmailModel = getAttribute(configuration, ATTRIBUTE_ACCOUNT_EMAIL, ""); //$NON-NLS-1$
 
     Map<String, String> environmentMap = getEnvironmentMap(configuration);
     gcpProjectIdModel = Strings.nullToEmpty(environmentMap.get(PROJECT_ID_ENVIRONMENT_VARIABLE));
@@ -407,9 +407,13 @@ public class GcpLocalRunTab extends AbstractLaunchConfigurationTab {
   Path getServiceAccountKeyPath() {
     Preconditions.checkState(!projectSelector.getSelection().isEmpty());
 
-    String projectId = projectSelector.getSelectProjectId();
+    String projectId = projectSelector.getSelectedProjectId();
     String filename = "app-engine-default-service-account-key-" //$NON-NLS-1$
         + projectId + ".json"; //$NON-NLS-1$
+    
+    // can't use colons in filenames on Windows
+    filename = filename.replace(':', '.');
+    
     String configurationLocation = Platform.getConfigurationLocation().getURL().getPath();
     return Paths.get(configurationLocation + "/com.google.cloud.tools.eclipse/" + filename);
   }
@@ -417,15 +421,13 @@ public class GcpLocalRunTab extends AbstractLaunchConfigurationTab {
   @VisibleForTesting
   void createServiceAccountKey(Path keyFile) {
     Credential credential = accountSelector.getSelectedCredential();
-    String projectId = projectSelector.getSelectProjectId();
-    Preconditions.checkNotNull(credential, "account not selected"); //$NON-NLS-1$
-    Preconditions.checkState(!projectId.isEmpty(), "project not selected"); //$NON-NLS-1$
-
-    try {
-      String appEngineServiceAccountId = projectId + "@appspot.gserviceaccount.com"; //$NON-NLS-1$
-
-      ServiceAccountUtil.createServiceAccountKey(googleApiFactory,
-          credential, projectId, appEngineServiceAccountId, keyFile);
+    String projectId = projectSelector.getSelectedProjectId();
+    Preconditions.checkNotNull(credential, "no account selected"); //$NON-NLS-1$
+    Preconditions.checkState(!projectId.isEmpty(), "no project selected"); //$NON-NLS-1$
+    
+    try { 
+      ServiceAccountUtil.createAppEngineDefaultServiceAccountKey(googleApiFactory,
+          credential, projectId, keyFile);
 
       serviceKeyInput.setText(keyFile.toString());
       String message = Messages.getString("service.key.created", keyFile); //$NON-NLS-1$
@@ -433,7 +435,7 @@ public class GcpLocalRunTab extends AbstractLaunchConfigurationTab {
 
     } catch (IOException e) {
       logger.log(Level.SEVERE, e.getMessage(), e);
-      String message = Messages.getString("cannot.create.service.key",  //$NON-NLS-1$
+      String message = Messages.getString("cannot.create.service.key", //$NON-NLS-1$
           e.getLocalizedMessage());
       showServiceKeyDecorationMessage(message, true /* isError */);
     }
