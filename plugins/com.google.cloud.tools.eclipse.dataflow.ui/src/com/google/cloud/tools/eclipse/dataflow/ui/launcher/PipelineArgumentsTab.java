@@ -35,27 +35,25 @@ import com.google.cloud.tools.eclipse.dataflow.ui.page.MessageTarget;
 import com.google.cloud.tools.eclipse.dataflow.ui.page.component.LabeledTextMapComponent;
 import com.google.cloud.tools.eclipse.dataflow.ui.page.component.TextAndButtonComponent;
 import com.google.cloud.tools.eclipse.dataflow.ui.page.component.TextAndButtonSelectionListener;
-import com.google.cloud.tools.eclipse.ui.util.DisplayExecutor;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.util.concurrent.SettableFuture;
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicReference;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.NullProgressMonitor;
+import org.eclipse.core.runtime.SubMonitor;
 import org.eclipse.debug.core.ILaunchConfiguration;
 import org.eclipse.debug.core.ILaunchConfigurationWorkingCopy;
 import org.eclipse.debug.ui.AbstractLaunchConfigurationTab;
@@ -86,8 +84,6 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
   private static final Joiner MISSING_GROUP_MEMBER_JOINER = Joiner.on(", "); //$NON-NLS-1$
 
   private static final String ARGUMENTS_SEPARATOR = "="; //$NON-NLS-1$
-
-  private Executor displayExecutor;
 
   /**
    * When true, suppresses calls to {@link #updateLaunchConfigurationDialog()} to avoid frequent
@@ -140,7 +136,6 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
   @Override
   public void createControl(Composite parent) {
     launchConfiguration = PipelineLaunchConfiguration.createDefault();
-    displayExecutor = DisplayExecutor.create(parent.getDisplay());
     composite = new ScrolledComposite(parent, SWT.V_SCROLL);
     composite.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
     composite.setLayout(new GridLayout(1, false));
@@ -208,7 +203,6 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
           launchConfiguration.setUserOptionsName(userOptionsName);
         }
         updatePipelineOptionsForm();
-        return;
       }
 
       @Override
@@ -361,11 +355,14 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
   private void updateHierarchy(final MajorVersion majorVersion)
       throws InvocationTargetException, InterruptedException {
     // blocking call (regardless of "fork"), returning only after the inner runnable completes
-    getLaunchConfigurationDialog().run(true, true, new IRunnableWithProgress() {
+    getLaunchConfigurationDialog().run(true /*fork*/, true /*cancelable*/,
+        new IRunnableWithProgress() {
       @Override
       public void run(IProgressMonitor monitor)
           throws InvocationTargetException, InterruptedException {
-        hierarchy = getPipelineOptionsHierarchy(majorVersion, monitor);
+        SubMonitor subMonitor = SubMonitor.convert(
+            monitor, Messages.getString("loading.pipeline.options.hierarchy"), 100);
+        hierarchy = getPipelineOptionsHierarchy(majorVersion, subMonitor.newChild(100));
       }
     });
   }
@@ -408,37 +405,32 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
   }
 
   private void updatePipelineOptionsForm() {
-    final SettableFuture<Map<PipelineOptionsType, Set<PipelineOptionsProperty>>> optionsHierarchyFuture =
-        SettableFuture.create();
-    optionsHierarchyFuture.addListener(new Runnable() {
-      @Override
-      public void run() {
-        if (internalComposite.isDisposed()) {
-          return;
-        }
-        BusyIndicator.showWhile(internalComposite.getDisplay(), new Runnable() {
-          @Override
-          public void run() {
-            try {
-              suppressDialogUpdates = true;
-              pipelineOptionsForm.updateForm(launchConfiguration, optionsHierarchyFuture.get());
-              updateLaunchConfigurationDialog();
-            } catch (InterruptedException | ExecutionException ex) {
-              DataflowUiPlugin.logError(ex, "Exception while updating available Pipeline Options"); //$NON-NLS-1$
-            } finally {
-              suppressDialogUpdates = false;
-            }
-          }
-        });
-      }
-    }, displayExecutor);
     try {
+      // This is merely a reference holder; atomicity not required.
+      final AtomicReference<Map<PipelineOptionsType, Set<PipelineOptionsProperty>>>
+          optionsHierarchy = new AtomicReference<>();
       // blocking call (regardless of "fork"), returning only after the inner runnable completes
-      getLaunchConfigurationDialog().run(true, true, new IRunnableWithProgress() {
+      getLaunchConfigurationDialog().run(true /*fork*/, true /*cancelable*/,
+          new IRunnableWithProgress() {
         @Override
         public void run(IProgressMonitor monitor)
             throws InvocationTargetException, InterruptedException {
-          optionsHierarchyFuture.set(launchConfiguration.getOptionsHierarchy(hierarchy));
+          monitor.beginTask(Messages.getString("updating.pipeline.options"), //$NON-NLS-1$
+              IProgressMonitor.UNKNOWN);
+          optionsHierarchy.set(launchConfiguration.getOptionsHierarchy(hierarchy));
+        }
+      });
+
+      BusyIndicator.showWhile(composite.getDisplay(), new Runnable() {
+        @Override
+        public void run() {
+          try {
+            suppressDialogUpdates = true;
+            pipelineOptionsForm.updateForm(launchConfiguration, optionsHierarchy.get());
+            updateLaunchConfigurationDialog();
+          } finally {
+            suppressDialogUpdates = false;
+          }
         }
       });
     } catch (InvocationTargetException | InterruptedException ex) {
@@ -516,10 +508,14 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
     }
 
     @Override
-    public void widgetSelected(SelectionEvent e) {
-      launchConfiguration.setRunner(runner);
-      updatePipelineOptionsForm();
-      updateLaunchConfigurationDialog();
+    public void widgetSelected(SelectionEvent event) {
+      Preconditions.checkArgument(event.getSource() instanceof Button, "add listener to buttons");
+
+      Button button = (Button) event.getSource();
+      if (button.getSelection()) {
+        launchConfiguration.setRunner(runner);
+        updatePipelineOptionsForm();
+      }
     }
   }
 

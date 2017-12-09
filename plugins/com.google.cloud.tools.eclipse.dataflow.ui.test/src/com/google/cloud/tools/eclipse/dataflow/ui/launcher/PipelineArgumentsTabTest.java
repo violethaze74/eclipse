@@ -19,8 +19,11 @@ package com.google.cloud.tools.eclipse.dataflow.ui.launcher;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
@@ -32,12 +35,16 @@ import com.google.cloud.tools.eclipse.test.util.ui.CompositeUtil;
 import com.google.cloud.tools.eclipse.test.util.ui.ShellTestResource;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
+import java.lang.reflect.InvocationTargetException;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.debug.core.ILaunchConfiguration;
 import org.eclipse.debug.ui.ILaunchConfigurationDialog;
 import org.eclipse.jdt.launching.IJavaLaunchConfigurationConstants;
+import org.eclipse.jface.operation.IRunnableContext;
+import org.eclipse.jface.operation.IRunnableWithProgress;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
@@ -50,6 +57,8 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 import org.junit.runners.Suite;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
@@ -69,11 +78,15 @@ public class PipelineArgumentsTabTest {
 
     // https://github.com/GoogleCloudPlatform/google-cloud-eclipse/issues/2165
     @Test
-    public void testInitializeForm_noExceptionForNonAccessibleProject() throws CoreException {
+    public void testInitializeForm_noExceptionForNonAccessibleProject()
+        throws CoreException, InvocationTargetException, InterruptedException {
       IWorkspaceRoot workspaceRoot = mock(IWorkspaceRoot.class);
       when(workspaceRoot.getProject(anyString())).thenReturn(mock(IProject.class));
 
       ILaunchConfigurationDialog dialog = mock(ILaunchConfigurationDialog.class);
+      doAnswer(new SynchronousIRunnableContextExecutor())
+          .when(dialog).run(anyBoolean(), anyBoolean(), any(IRunnableWithProgress.class));
+
       ILaunchConfiguration configuration = mock(ILaunchConfiguration.class);
       when(configuration.getAttribute(
           eq(IJavaLaunchConfigurationConstants.ATTR_PROJECT_NAME), anyString()))
@@ -163,6 +176,21 @@ public class PipelineArgumentsTabTest {
           return control instanceof Button && ((Button) control).getSelection();
         }
       });
+    }
+  }
+
+  /**
+   * Intended to mock {@link IRunnableContext#run(boolean, boolean, IRunnableWithProgress)} to run
+   * the given {@link IRunnableWithProgress} synchronously. The mock is incomplete and not general
+   * in that it ignores other parameters and runs the code synchronously in the caller's thread.
+   */
+  private static class SynchronousIRunnableContextExecutor implements Answer<Void> {
+    @Override
+    public Void answer(InvocationOnMock invocation)
+        throws InvocationTargetException, InterruptedException {
+      IRunnableWithProgress runnable = invocation.getArgumentAt(2, IRunnableWithProgress.class);
+      runnable.run(new NullProgressMonitor());
+      return null;
     }
   }
 }
