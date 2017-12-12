@@ -17,6 +17,7 @@
 package com.google.cloud.tools.eclipse.test.util;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import com.google.common.collect.Sets;
@@ -170,6 +171,25 @@ public abstract class BasePluginXmlTest {
       vendor = pluginProperties.get(vendor.substring(1));
     }
     assertEquals("Google Inc.", vendor);
+  }
+  
+  @Test
+  public final void testBundleActivationPolicyLazy() throws IOException {
+    String policy = getManifestAttributes().getValue("Bundle-ActivationPolicy");
+    assertEquals("lazy", policy);
+  }
+  
+  @Test
+  public final void testManifestVersion() throws IOException {
+    Attributes manifest = getManifestAttributes();
+    assertEquals("1.0", manifest.getValue("Manifest-Version"));
+    assertEquals("2", manifest.getValue("Bundle-ManifestVersion"));
+  }
+
+  @Test
+  public final void testBundleExecutionEnvironment() throws IOException {
+    Attributes manifest = getManifestAttributes();
+    assertEquals("JavaSE-1.7", manifest.getValue("Bundle-RequiredExecutionEnvironment"));
   }
 
   @Test
