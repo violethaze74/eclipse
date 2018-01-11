@@ -31,12 +31,13 @@ import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.SubMonitor;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.jst.j2ee.refactor.listeners.J2EEElementChangedListener;
+import org.eclipse.wst.common.project.facet.core.IDelegate;
 import org.eclipse.wst.common.project.facet.core.IFacetedProject;
 import org.eclipse.wst.common.project.facet.core.IProjectFacet;
 import org.eclipse.wst.common.project.facet.core.IProjectFacetVersion;
 import org.eclipse.wst.common.project.facet.core.ProjectFacetsManager;
 
-public class StandardFacetInstallDelegate extends AppEngineFacetInstallDelegate {
+public class StandardFacetInstallDelegate implements IDelegate {
   private static final String APPENGINE_WEB_XML = "appengine-web.xml";
 
   private static final String JSDT_FACET_ID = "wst.jsdt.web";
@@ -47,7 +48,6 @@ public class StandardFacetInstallDelegate extends AppEngineFacetInstallDelegate 
                       IProjectFacetVersion version,
                       Object config,
                       IProgressMonitor monitor) throws CoreException {
-    super.execute(project, version, config, monitor);
     createConfigFiles(project, monitor);
     installAppEngineRuntimes(project);
   }
