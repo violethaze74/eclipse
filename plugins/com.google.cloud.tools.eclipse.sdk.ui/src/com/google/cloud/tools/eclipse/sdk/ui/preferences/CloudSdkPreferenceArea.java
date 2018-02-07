@@ -44,6 +44,7 @@ import org.eclipse.jface.util.PropertyChangeEvent;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
+import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
@@ -93,6 +94,13 @@ public class CloudSdkPreferenceArea extends PreferenceArea {
       useLocalSdk.addSelectionListener(new SelectionAdapter() {
         @Override
         public void widgetSelected(SelectionEvent e) {
+          if (!useLocalSdk.getSelection()) {
+            status = Status.OK_STATUS;
+          } else {
+            sdkLocation.doCheckState();
+          }
+          fireValueChanged(VALUE, "", "");
+
           updateControlEnablement();
         }
       });
