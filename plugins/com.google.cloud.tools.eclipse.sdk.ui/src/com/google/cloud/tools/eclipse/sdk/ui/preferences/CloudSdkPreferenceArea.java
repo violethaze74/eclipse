@@ -21,11 +21,14 @@ import com.google.cloud.tools.appengine.cloudsdk.AppEngineJavaComponentsNotInsta
 import com.google.cloud.tools.appengine.cloudsdk.CloudSdk;
 import com.google.cloud.tools.appengine.cloudsdk.CloudSdkNotFoundException;
 import com.google.cloud.tools.appengine.cloudsdk.CloudSdkOutOfDateException;
+import com.google.cloud.tools.appengine.cloudsdk.CloudSdkVersionFileException;
 import com.google.cloud.tools.eclipse.preferences.areas.PreferenceArea;
 import com.google.cloud.tools.eclipse.sdk.CloudSdkManager;
 import com.google.cloud.tools.eclipse.sdk.internal.CloudSdkPreferences;
 import com.google.cloud.tools.eclipse.sdk.internal.CloudSdkPreferences.CloudSdkManagementOption;
 import com.google.cloud.tools.eclipse.ui.util.WorkbenchUtil;
+import com.google.cloud.tools.managedcloudsdk.ManagedCloudSdk;
+import com.google.cloud.tools.managedcloudsdk.UnsupportedOsException;
 import com.google.common.annotations.VisibleForTesting;
 import java.io.File;
 import java.nio.file.Files;
@@ -47,6 +50,7 @@ import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Link;
 import org.eclipse.ui.PlatformUI;
 
@@ -58,7 +62,7 @@ public class CloudSdkPreferenceArea extends PreferenceArea {
   private Button useLocalSdk;
   private Composite localSdkArea;
   private CloudSdkDirectoryFieldEditor sdkLocation;
-
+  private Label sdkVersionLabel;
   private IStatus status = Status.OK_STATUS;
   private IPropertyChangeListener wrappedPropertyChangeListener = new IPropertyChangeListener() {
 
@@ -69,6 +73,7 @@ public class CloudSdkPreferenceArea extends PreferenceArea {
       } else if (event.getProperty() == DirectoryFieldEditor.VALUE) {
         fireValueChanged(VALUE, event.getOldValue(), event.getNewValue());
       }
+      updateSelectedVersion();
     }
   };
 
@@ -86,18 +91,23 @@ public class CloudSdkPreferenceArea extends PreferenceArea {
         WorkbenchUtil.openInBrowser(PlatformUI.getWorkbench(), event.text);
       }
     });
-
+    
+    sdkVersionLabel = new Label(parent, SWT.LEAD);
+    sdkVersionLabel.setFont(contents.getFont());
+    sdkVersionLabel.setText(Messages.getString("SdkVersion", "Unset"));
+    
     if (CloudSdkManager.isManagedSdkFeatureEnabled()) {
       useLocalSdk = new Button(parent, SWT.CHECK);
       useLocalSdk.setText(Messages.getString("UseLocalSdk")); //$NON-NLS-1$
       useLocalSdk.addSelectionListener(new SelectionAdapter() {
         @Override
-        public void widgetSelected(SelectionEvent e) {
+        public void widgetSelected(SelectionEvent event) {
           if (!useLocalSdk.getSelection()) {
             status = Status.OK_STATUS;
           } else {
             sdkLocation.doCheckState();
           }
+          updateSelectedVersion();
           fireValueChanged(VALUE, "", "");
 
           updateControlEnablement();
@@ -106,6 +116,7 @@ public class CloudSdkPreferenceArea extends PreferenceArea {
     }
 
     localSdkArea = new Composite(parent, SWT.NONE);
+
     sdkLocation = new CloudSdkDirectoryFieldEditor(CloudSdkPreferences.CLOUD_SDK_PATH,
         Messages.getString("SdkLocation"), localSdkArea); //$NON-NLS-1$
     Path defaultLocation = getDefaultSdkLocation();
@@ -114,6 +125,8 @@ public class CloudSdkPreferenceArea extends PreferenceArea {
     }
     sdkLocation.setPreferenceStore(getPreferenceStore());
     sdkLocation.setPropertyChangeListener(wrappedPropertyChangeListener);
+    
+    updateSelectedVersion();
 
     if (CloudSdkManager.isManagedSdkFeatureEnabled()) {
       GridLayoutFactory.fillDefaults().numColumns(sdkLocation.getNumberOfControls())
@@ -127,6 +140,36 @@ public class CloudSdkPreferenceArea extends PreferenceArea {
 
     Dialog.applyDialogFont(contents);
     return contents;
+  }
+  
+  private void updateSelectedVersion() {
+    String version = Messages.getString("UnknownVersion"); //$NON-NLS-1$
+    if (!CloudSdkManager.isManagedSdkFeatureEnabled() || useLocalSdk.getSelection()) {
+      Path path = Paths.get(sdkLocation.getStringValue());
+      version = getSdkVersion(path);
+    } else if (CloudSdkManager.isManagedSdkFeatureEnabled()) {
+      try {
+        Path home = ManagedCloudSdk.newManagedSdk().getSdkHome();
+        version = getSdkVersion(home);
+      } catch (UnsupportedOsException ex) {
+        // shouldn't happen but if it does we'll just leave
+        // version set to Unknown
+      }
+    }
+    
+    sdkVersionLabel.setText(Messages.getString("SdkVersion", version)); //$NON-NLS-1$
+  }
+
+  private static String getSdkVersion(Path path) {
+    if (!Files.exists(path) || !Files.isDirectory(path)) {
+      return "Unset";
+    }
+
+    try {
+      return new CloudSdk.Builder().sdkPath(path).build().getVersion().toString();
+    } catch (CloudSdkVersionFileException ex) {
+      return Messages.getString("NoSdkFound"); //$NON-NLS-1$
+    }
   }
 
   @VisibleForTesting
@@ -244,6 +287,11 @@ public class CloudSdkPreferenceArea extends PreferenceArea {
 
     @Override
     protected boolean doCheckState() {
+      if (CloudSdkManager.isManagedSdkFeatureEnabled() && !useLocalSdk.getSelection()) {
+        // return early if we're not using a local SDK
+        return true;
+      }
+      
       String directory = getStringValue().trim();
       if (directory.isEmpty()) {
         status = Status.OK_STATUS;
@@ -260,7 +308,8 @@ public class CloudSdkPreferenceArea extends PreferenceArea {
         status = new Status(IStatus.ERROR, getClass().getName(), message);
         return false;
       }
-      return validateSdk(location);
+      boolean valid = validateSdk(location);
+      return valid;
     }
   }
 }
