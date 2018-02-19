@@ -17,7 +17,6 @@
 package com.google.cloud.tools.eclipse.sdk.internal;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
@@ -25,7 +24,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.google.cloud.tools.eclipse.sdk.MockedSdkInstallJob;
 import com.google.cloud.tools.managedcloudsdk.ManagedCloudSdk;
 import com.google.cloud.tools.managedcloudsdk.ManagedSdkVerificationException;
 import com.google.cloud.tools.managedcloudsdk.ManagedSdkVersionMismatchException;
@@ -39,6 +37,7 @@ import com.google.cloud.tools.managedcloudsdk.install.SdkInstaller;
 import com.google.cloud.tools.managedcloudsdk.install.SdkInstallerException;
 import com.google.cloud.tools.managedcloudsdk.install.UnknownArchiveTypeException;
 import java.io.IOException;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.ui.console.MessageConsoleStream;
@@ -67,34 +66,34 @@ public class CloudSdkInstallJobTest {
 
   @Test
   public void testBelongsTo() {
-    Job installJob = new CloudSdkInstallJob(null);
+    Job installJob = new CloudSdkInstallJob(null, new ReentrantReadWriteLock());
     assertTrue(installJob.belongsTo(CloudSdkInstallJob.CLOUD_SDK_MODIFY_JOB_FAMILY));
   }
 
   @Test
   public void testMutexRuleSet() {
-    Job installJob = new CloudSdkInstallJob(null);
+    Job installJob = new CloudSdkInstallJob(null, new ReentrantReadWriteLock());
     assertEquals(CloudSdkInstallJob.MUTEX_RULE, installJob.getRule());
   }
 
   @Test
   public void testGetManagedCloudSdk() throws UnsupportedOsException {
-    assertNotNull(new CloudSdkInstallJob(null).getManagedCloudSdk());
+    assertNotNull(new CloudSdkInstallJob(null, new ReentrantReadWriteLock()).getManagedCloudSdk());
   }
 
   @Test
-  public void testRun_mutualExclusion() throws InterruptedException {
-    MockedSdkInstallJob job1 = scheduleBlockingJobAndWaitUntilRunning();
-    MockedSdkInstallJob job2 = new MockedSdkInstallJob(true /* blockBeforeExit */, managedCloudSdk);
+  public void testRun_consoleStreamOutput()
+      throws InterruptedException, ManagedSdkVerificationException,
+          ManagedSdkVersionMismatchException {
+    when(managedCloudSdk.isInstalled()).thenReturn(false);
+    when(managedCloudSdk.hasComponent(any(SdkComponent.class))).thenReturn(false);
 
-    job2.schedule();
-    // Incomplete test, but if it ever fails, something is surely broken.
-    assertNotEquals(Job.RUNNING, job2.getState());
+    CloudSdkInstallJob job = newCloudSdkInstallJob();
+    job.schedule();
+    job.join();
 
-    job1.unblock();
-    job2.unblock();
-    job1.join();
-    job2.join();
+    verify(consoleStream)
+        .println("Installing/upgrading the Cloud SDK... (may take several minutes)");
   }
 
   @Test
@@ -104,7 +103,7 @@ public class CloudSdkInstallJobTest {
     when(managedCloudSdk.isInstalled()).thenReturn(false);
     when(managedCloudSdk.hasComponent(any(SdkComponent.class))).thenReturn(false);
 
-    MockedSdkInstallJob job = new MockedSdkInstallJob(false /* blockBeforeExit */, managedCloudSdk);
+    CloudSdkInstallJob job = newCloudSdkInstallJob();
     job.schedule();
     job.join();
 
@@ -124,7 +123,7 @@ public class CloudSdkInstallJobTest {
     UnsupportedOsException osException = new UnsupportedOsException("unsupported");
     when(managedCloudSdk.newInstaller()).thenThrow(osException);
 
-    MockedSdkInstallJob job = new MockedSdkInstallJob(false /* blockBeforeExit */, managedCloudSdk);
+    CloudSdkInstallJob job = newCloudSdkInstallJob();
     job.setFailureSeverity(IStatus.WARNING);
     job.schedule();
     job.join();
@@ -145,7 +144,7 @@ public class CloudSdkInstallJobTest {
     when(managedCloudSdk.isInstalled()).thenReturn(true);
     when(managedCloudSdk.hasComponent(any(SdkComponent.class))).thenReturn(false);
 
-    MockedSdkInstallJob job = new MockedSdkInstallJob(false /* blockBeforeExit */, managedCloudSdk);
+    CloudSdkInstallJob job = newCloudSdkInstallJob();
     job.schedule();
     job.join();
 
@@ -161,7 +160,7 @@ public class CloudSdkInstallJobTest {
     when(managedCloudSdk.isInstalled()).thenReturn(true);
     when(managedCloudSdk.hasComponent(any(SdkComponent.class))).thenReturn(true);
 
-    MockedSdkInstallJob job = new MockedSdkInstallJob(false /* blockBeforeExit */, managedCloudSdk);
+    CloudSdkInstallJob job = newCloudSdkInstallJob();
     job.schedule();
     job.join();
 
@@ -170,13 +169,20 @@ public class CloudSdkInstallJobTest {
     verify(managedCloudSdk, never()).newComponentInstaller();
   }
 
-  private MockedSdkInstallJob scheduleBlockingJobAndWaitUntilRunning() throws InterruptedException {
-    MockedSdkInstallJob job = new MockedSdkInstallJob(true /* blockBeforeExit */, managedCloudSdk);
-
+  @Test
+  public void testRun() throws InterruptedException {
+    Job job = newCloudSdkInstallJob();
     job.schedule();
-    while (job.getState() != Job.RUNNING) {
-      Thread.sleep(10);
-    }
-    return job;
+    job.join();
+    assertTrue(job.getResult().isOK());
+  }
+
+  private CloudSdkInstallJob newCloudSdkInstallJob() {
+    return new CloudSdkInstallJob(consoleStream, new ReentrantReadWriteLock()) {
+      @Override
+      protected ManagedCloudSdk getManagedCloudSdk() throws UnsupportedOsException {
+        return managedCloudSdk;
+      }
+    };
   }
 }
