@@ -36,12 +36,12 @@ import com.google.cloud.tools.eclipse.ui.util.event.OpenUriSelectionListener.Que
 import com.google.cloud.tools.eclipse.ui.util.images.SharedImages;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
 import com.google.common.base.Strings;
 import com.google.common.net.UrlEscapers;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
+import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.eclipse.core.databinding.Binding;
@@ -502,19 +502,13 @@ public abstract class AppEngineDeployPreferencesPanel extends DeployPreferencesP
   @VisibleForTesting
   public Job latestGcpProjectQueryJob;  // Must be updated/accessed in the UI context.
 
-  private Predicate<Job> isLatestQueryJob = new Predicate<Job>() {
-    @Override
-    public boolean apply(Job job) {
-      return job == latestGcpProjectQueryJob;
-    }
-  };
-
   private void refreshProjectsForSelectedCredential() {
     projectSelector.setProjects(Collections.<GcpProject>emptyList());
     latestGcpProjectQueryJob = null;
 
     Credential selectedCredential = accountSelector.getSelectedCredential();
     if (selectedCredential != null) {
+      Predicate<Job> isLatestQueryJob = job -> job == latestGcpProjectQueryJob;
       latestGcpProjectQueryJob = new GcpProjectQueryJob(selectedCredential,
           projectRepository, projectSelector, bindingContext, isLatestQueryJob);
       latestGcpProjectQueryJob.schedule();
