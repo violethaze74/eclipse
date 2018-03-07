@@ -34,6 +34,7 @@ import com.google.cloud.tools.eclipse.sdk.internal.CloudSdkPreferences;
 import com.google.cloud.tools.eclipse.test.util.MockSdkGenerator;
 import com.google.cloud.tools.eclipse.test.util.ui.CompositeUtil;
 import com.google.cloud.tools.eclipse.test.util.ui.ShellTestResource;
+import java.io.IOException;
 import java.nio.file.Path;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.jface.preference.IPreferenceStore;
@@ -88,7 +89,7 @@ public class CloudSdkPreferenceAreaTest {
   }
 
   @Test
-  public void testVersion() throws Exception {
+  public void testVersion() throws IOException {
     when(cloudSdkManager.isManagedSdkFeatureEnabled()).thenReturn(true);
 
     Path mockSdk = MockSdkGenerator.createMockSdk("1.23.4");
@@ -154,6 +155,20 @@ public class CloudSdkPreferenceAreaTest {
     assertNotNull(chooseSdk);
     assertNotNull(sdkLocation);
     assertNotNull(sdkVersion);
+  }
+  
+  @Test
+  // https://github.com/GoogleCloudPlatform/google-cloud-eclipse/issues/2897
+  public void testSearchSdkIfSdkLocationIsEmpty() {
+    when(cloudSdkManager.isManagedSdkFeatureEnabled()).thenReturn(true);
+    when(preferences.getString(CloudSdkPreferences.CLOUD_SDK_PATH)).thenReturn("");
+    when(preferences.getString(CloudSdkPreferences.CLOUD_SDK_MANAGEMENT)).thenReturn("MANUAL");
+    
+    createPreferenceArea();
+    
+    assertTrue(sdkLocation.getText().endsWith("google-cloud-sdk"));
+    assertTrue(sdkVersion.getText().length() > 3);
+    assertEquals(sdkLocation.getText(), sdkVersion.getToolTipText());
   }
 
   @Test
