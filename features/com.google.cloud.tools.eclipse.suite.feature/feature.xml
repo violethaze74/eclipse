@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <feature
-      id="com.google.cloud.tools.eclipse.suite.e45.feature"
+      id="com.google.cloud.tools.eclipse.suite.feature"
       label="Google Cloud Platform for Eclipse"
       version="1.6.0.qualifier"
       provider-name="Google Inc."
