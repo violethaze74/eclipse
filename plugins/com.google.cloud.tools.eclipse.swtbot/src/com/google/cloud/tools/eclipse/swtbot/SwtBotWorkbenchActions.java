@@ -50,20 +50,17 @@ public final class SwtBotWorkbenchActions {
    * Note: There are some platform-specific intricacies that this abstracts
    * away.
    */
-  public static void openPreferencesDialog(final SWTWorkbenchBot bot) {
-    SwtBotTestingUtilities.performAndWaitForWindowChange(bot, new Runnable() {
-      @Override
-      public void run() {
-        if (SwtBotTestingUtilities.isMac()) {
-          // TODO: Mac has "Preferences..." under the "Eclipse" menu item.
-          // However,
-          // the "Eclipse" menu item is a system menu item (like the Apple menu
-          // item), and can't be reached via SWTBot.
-          openPreferencesDialogViaEvents(bot);
-        } else {
-          SWTBotMenu windowMenu = bot.menu("Window");
-          windowMenu.menu("Preferences").click();
-        }
+  public static void openPreferencesDialog(SWTWorkbenchBot bot) {
+    SwtBotTestingUtilities.performAndWaitForWindowChange(bot, () -> {
+      if (SwtBotTestingUtilities.isMac()) {
+        // TODO: Mac has "Preferences..." under the "Eclipse" menu item.
+        // However,
+        // the "Eclipse" menu item is a system menu item (like the Apple menu
+        // item), and can't be reached via SWTBot.
+        openPreferencesDialogViaEvents(bot);
+      } else {
+        SWTBotMenu windowMenu = bot.menu("Window");
+        windowMenu.menu("Preferences").click();
       }
     });
   }
@@ -71,20 +68,15 @@ public final class SwtBotWorkbenchActions {
   /**
    * Wait until all background tasks are complete.
    */
-  public static void waitForProjects(final SWTBot bot, IProject... projects) {
-    Runnable delayTactic = new Runnable() {
-      @Override
-      public void run() {
-        bot.sleep(300);
-      }
-    };
+  public static void waitForProjects(SWTBot bot, IProject... projects) {
+    Runnable delayTactic = () -> bot.sleep(300);
     ProjectUtils.waitForProjects(delayTactic, projects);
   }
 
   /**
    * Wait for the main shell progress bar to get removed.
    */
-  public static void waitForMainShellProgressBarToFinish(final SWTWorkbenchBot bot) {
+  public static void waitForMainShellProgressBarToFinish(SWTWorkbenchBot bot) {
     // wait for progress bar to disappear
     bot.waitUntil(new ICondition() {
       @Override
@@ -192,7 +184,7 @@ public final class SwtBotWorkbenchActions {
    * Reimplementation of {@link SWTWorkbenchBot#closeAllShells()} that does not close the internal
    * Eclipse Workbench limbo shell thus avoiding Eclipse bug 511729.
    */
-  private static void closeAllShells(final SWTWorkbenchBot bot, final boolean forceKill) {
+  private static void closeAllShells(SWTWorkbenchBot bot, boolean forceKill) {
     // avoid bot.closeAllShells() due to bug 511729
     UIThreadRunnable.syncExec(bot.getDisplay(), new VoidResult() {
       @Override
@@ -219,7 +211,6 @@ public final class SwtBotWorkbenchActions {
       }
     });
   }
-
 
   private SwtBotWorkbenchActions() {}
 

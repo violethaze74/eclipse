@@ -482,7 +482,7 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
   private void updatePipelineOptionsForm() {
     try {
       // This is merely a reference holder; atomicity not required.
-      final AtomicReference<Map<PipelineOptionsType, Set<PipelineOptionsProperty>>>
+      AtomicReference<Map<PipelineOptionsType, Set<PipelineOptionsProperty>>>
           optionsHierarchy = new AtomicReference<>();
       // blocking call (regardless of "fork"), returning only after the inner runnable completes
       getLaunchConfigurationDialog().run(true /*fork*/, true /*cancelable*/,
@@ -496,15 +496,12 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
         }
       });
 
-      BusyIndicator.showWhile(composite.getDisplay(), new Runnable() {
-        @Override
-        public void run() {
-          try {
-            suppressDialogUpdates = true;
-            pipelineOptionsForm.updateForm(launchConfiguration, optionsHierarchy.get());
-          } finally {
-            suppressDialogUpdates = false;
-          }
+      BusyIndicator.showWhile(composite.getDisplay(), () -> {
+        try {
+          suppressDialogUpdates = true;
+          pipelineOptionsForm.updateForm(launchConfiguration, optionsHierarchy.get());
+        } finally {
+          suppressDialogUpdates = false;
         }
       });
     } catch (InvocationTargetException | InterruptedException ex) {

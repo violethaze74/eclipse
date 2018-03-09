@@ -156,22 +156,19 @@ public class GcpLocalRunTab extends AbstractLaunchConfigurationTab {
     // Account row
     new Label(composite, SWT.LEAD).setText(Messages.getString("label.account")); //$NON-NLS-1$
     accountSelector = new AccountSelector(composite, loginService);
-    accountSelector.addSelectionListener(new Runnable() {
-      @Override
-      public void run() {
-        updateProjectSelector();
+    accountSelector.addSelectionListener(() -> {
+      updateProjectSelector();
 
-        if (!initializingUiValues) {
-          boolean accountSelected = !accountSelector.getSelectedEmail().isEmpty();
-          boolean savedEmailAvailable = accountSelector.isEmailAvailable(accountEmailModel);
-          // 1. If some account is selected, always save it.
-          // 2. Otherwise (no account selected), clear the saved email only when it is certain
-          // that the user explicitly removed selection (i.e., not because of logout).
-          if (accountSelected || savedEmailAvailable) {
-            accountEmailModel = accountSelector.getSelectedEmail();
-            gcpProjectIdModel = ""; //$NON-NLS-1$
-            updateLaunchConfigurationDialog();
-          }
+      if (!initializingUiValues) {
+        boolean accountSelected = !accountSelector.getSelectedEmail().isEmpty();
+        boolean savedEmailAvailable = accountSelector.isEmailAvailable(accountEmailModel);
+        // 1. If some account is selected, always save it.
+        // 2. Otherwise (no account selected), clear the saved email only when it is certain
+        // that the user explicitly removed selection (i.e., not because of logout).
+        if (accountSelected || savedEmailAvailable) {
+          accountEmailModel = accountSelector.getSelectedEmail();
+          gcpProjectIdModel = ""; //$NON-NLS-1$
+          updateLaunchConfigurationDialog();
         }
       }
     });
@@ -181,7 +178,7 @@ public class GcpLocalRunTab extends AbstractLaunchConfigurationTab {
     projectLabel.setText(Messages.getString("label.project")); //$NON-NLS-1$
 
     Composite projectSelectorComposite = new Composite(composite, SWT.NONE);
-    final Text filterField = new Text(projectSelectorComposite,
+    Text filterField = new Text(projectSelectorComposite,
         SWT.BORDER | SWT.SEARCH | SWT.ICON_SEARCH | SWT.ICON_CANCEL);
 
     projectSelector = new ProjectSelector(projectSelectorComposite);
@@ -239,14 +236,12 @@ public class GcpLocalRunTab extends AbstractLaunchConfigurationTab {
     createServiceKey.addSelectionListener(new SelectionAdapter() {
       @Override
       public void widgetSelected(SelectionEvent event) {
-        BusyIndicator.showWhile(createServiceKey.getDisplay(), new Runnable() {
-          @Override
-          public void run() {
-            Path keyPath = getServiceAccountKeyPath();
-            if (keyPath != null) {
-              createServiceAccountKey(keyPath);
-            }
-          }});
+        BusyIndicator.showWhile(createServiceKey.getDisplay(), () -> {
+          Path keyPath = getServiceAccountKeyPath();
+          if (keyPath != null) {
+            createServiceAccountKey(keyPath);
+          }
+        });
       }
     });
 
@@ -268,22 +263,19 @@ public class GcpLocalRunTab extends AbstractLaunchConfigurationTab {
   }
 
   private void updateProjectSelector() {
-    final Credential credential = accountSelector.getSelectedCredential();
+    Credential credential = accountSelector.getSelectedCredential();
     if (credential == null) {
       projectSelector.setProjects(new ArrayList<GcpProject>());
       return;
     }
 
-    BusyIndicator.showWhile(projectSelector.getDisplay(), new Runnable() {
-      @Override
-      public void run() {
-        try {
-          List<GcpProject> gcpProjects = projectRepository.getProjects(credential);
-          projectSelector.setProjects(gcpProjects);
-        } catch (ProjectRepositoryException e) {
-          logger.log(Level.WARNING,
-              "Could not retrieve GCP project information from server.", e); //$NON-NLS-1$
-        }
+    BusyIndicator.showWhile(projectSelector.getDisplay(), () -> {
+      try {
+        List<GcpProject> gcpProjects = projectRepository.getProjects(credential);
+        projectSelector.setProjects(gcpProjects);
+      } catch (ProjectRepositoryException e) {
+        logger.log(Level.WARNING,
+            "Could not retrieve GCP project information from server.", e); //$NON-NLS-1$
       }
     });
   }

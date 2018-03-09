@@ -106,19 +106,15 @@ public final class OpenDropDownMenuHandler extends AbstractHandler {
   /**
    * Opens drop-down menu.
    */
-  private static void openDropDownMenu(final String menuId, final ToolItem toolItem,
-      final IMenuService menuService) {
-    final MenuManager menuManager = new MenuManager();
+  private static void openDropDownMenu(String menuId, ToolItem toolItem, IMenuService menuService) {
+    MenuManager menuManager = new MenuManager();
     Menu menu = menuManager.createContextMenu(toolItem.getParent());
     menuManager.addMenuListener(new IMenuListener2() {
       @Override
       public void menuAboutToHide(IMenuManager manager) {
-        toolItem.getDisplay().asyncExec(new Runnable() {
-          @Override
-          public void run() {
-            menuService.releaseContributions(menuManager);
-            menuManager.dispose();
-          }
+        toolItem.getDisplay().asyncExec(() -> {
+          menuService.releaseContributions(menuManager);
+          menuManager.dispose();
         });
       }
 

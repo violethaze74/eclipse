@@ -37,23 +37,13 @@ public class SwtBotTestingUtilities {
   public static final int EVENT_DOWN_UP_DELAY_MS = 100;
 
   /** Click the button, wait for the window change. */
-  public static void clickButtonAndWaitForWindowChange(SWTBot bot, final SWTBotButton button) {
-    performAndWaitForWindowChange(bot, new Runnable() {
-      @Override
-      public void run() {
-        button.click();
-      }
-    });
+  public static void clickButtonAndWaitForWindowChange(SWTBot bot, SWTBotButton button) {
+    performAndWaitForWindowChange(bot, button::click);
   }
 
   /** Click the button, wait for the window close. */
-  public static void clickButtonAndWaitForWindowClose(SWTBot bot, final SWTBotButton button) {
-    performAndWaitForWindowClose(bot, new Runnable() {
-      @Override
-      public void run() {
-        button.click();
-      }
-    });
+  public static void clickButtonAndWaitForWindowClose(SWTBot bot, SWTBotButton button) {
+    performAndWaitForWindowClose(bot, button::click);
   }
 
   /**
@@ -119,7 +109,7 @@ public class SwtBotTestingUtilities {
   /**
    * Blocks the caller until the given shell is no longer active.
    */
-  public static void waitUntilShellIsNotActive(SWTBot bot, final SWTBotShell shell) {
+  public static void waitUntilShellIsNotActive(SWTBot bot, SWTBotShell shell) {
     bot.waitUntil(new DefaultCondition() {
       @Override
       public String getFailureMessage() {
@@ -136,7 +126,7 @@ public class SwtBotTestingUtilities {
   /**
    * Blocks the caller until the given shell is closed.
    */
-  public static void waitUntilShellIsClosed(SWTBot bot, final SWTBotShell shell) {
+  public static void waitUntilShellIsClosed(SWTBot bot, SWTBotShell shell) {
     bot.waitUntil(new DefaultCondition() {
       @Override
       public String getFailureMessage() {
@@ -153,8 +143,7 @@ public class SwtBotTestingUtilities {
   /**
    * Wait until the given text widget contains the provided string
    */
-  public static void waitUntilStyledTextContains(SWTBot bot, final String text,
-      final SWTBotStyledText widget) {
+  public static void waitUntilStyledTextContains(SWTBot bot, String text, SWTBotStyledText widget) {
     bot.waitUntil(new DefaultCondition() {
       @Override
       public boolean test() throws Exception {
