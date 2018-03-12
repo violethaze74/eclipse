@@ -31,15 +31,17 @@ import org.eclipse.ui.ide.undo.WorkspaceUndoUtil;
 
 public abstract class AppEngineProjectWizard extends Wizard implements INewWizard {
 
-  protected AppEngineWizardPage page = null;
+  private final AppEngineWizardPage appEnginePage;
   protected final AppEngineProjectConfig config = new AppEngineProjectConfig();
   private IWorkbench workbench;
 
-  public AppEngineProjectWizard() {
+  public AppEngineProjectWizard(AppEngineWizardPage appEngineWizardPage) {
+    appEnginePage = Preconditions.checkNotNull(appEngineWizardPage);
+    addPage(appEnginePage);
     setNeedsProgressMonitor(true);
   }
 
-  public abstract AppEngineWizardPage createWizardPage();
+  public abstract void sendAnalyticsPing();
 
   public abstract IStatus validateDependencies();
 
@@ -52,14 +54,11 @@ public abstract class AppEngineProjectWizard extends Wizard implements INewWizar
     // (https://github.com/GoogleCloudPlatform/google-cloud-eclipse/issues/2064)
     Thread.interrupted();
 
-    page = createWizardPage();
-    addPage(page);
+    sendAnalyticsPing();
   }
 
   @Override
   public boolean performFinish() {
-    Preconditions.checkState(page != null);
-
     IStatus status = validateDependencies();
     if (!status.isOK()) {
       StatusUtil.setErrorStatus(this, status.getMessage(), status);
@@ -91,19 +90,20 @@ public abstract class AppEngineProjectWizard extends Wizard implements INewWizar
     }
   }
 
-  protected void retrieveConfigurationValues() {
-    config.setServiceName(page.getServiceName());
-    config.setPackageName(page.getPackageName());
-    config.setRuntimeId(page.getRuntimeId());
-    config.setProject(page.getProjectHandle());
-    if (!page.useDefaults()) {
-      config.setEclipseProjectLocationUri(page.getLocationURI());
+  private void retrieveConfigurationValues() {
+    config.setServiceName(appEnginePage.getServiceName());
+    config.setPackageName(appEnginePage.getPackageName());
+    config.setRuntimeId(appEnginePage.getRuntimeId());
+    config.setProject(appEnginePage.getProjectHandle());
+    if (!appEnginePage.useDefaults()) {
+      config.setEclipseProjectLocationUri(appEnginePage.getLocationURI());
     }
 
-    config.setAppEngineLibraries(page.getSelectedLibraries());
+    config.setAppEngineLibraries(appEnginePage.getSelectedLibraries());
 
-    if (page.asMavenProject()) {
-      config.setUseMaven(page.getMavenGroupId(), page.getMavenArtifactId(), page.getMavenVersion());
+    if (appEnginePage.asMavenProject()) {
+      config.setUseMaven(appEnginePage.getMavenGroupId(), appEnginePage.getMavenArtifactId(),
+          appEnginePage.getMavenVersion());
     }
   }
 
