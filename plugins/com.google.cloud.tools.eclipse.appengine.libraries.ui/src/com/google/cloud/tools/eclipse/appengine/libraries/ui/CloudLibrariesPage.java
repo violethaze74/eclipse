@@ -44,12 +44,11 @@ import org.eclipse.jdt.core.IClasspathEntry;
 import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.ui.wizards.IClasspathContainerPage;
 import org.eclipse.jdt.ui.wizards.IClasspathContainerPageExtension;
+import org.eclipse.jface.layout.GridLayoutFactory;
 import org.eclipse.jface.viewers.StructuredSelection;
 import org.eclipse.jface.wizard.WizardPage;
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.layout.RowLayout;
 import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Group;
 import org.eclipse.wst.common.project.facet.core.IProjectFacetVersion;
 
 /**
@@ -108,7 +107,7 @@ public class CloudLibrariesPage extends WizardPage
   @Override
   public void createControl(Composite parent) {
     Preconditions.checkNotNull(libraryGroups, "Library groups must be set"); //$NON-NLS-1$
-    Composite composite = new Group(parent, SWT.NONE);
+    Composite composite = new Composite(parent, SWT.NONE);
 
     IProjectFacetVersion facetVersion =
         AppEngineStandardFacet.getProjectFacetVersion(project.getProject());
@@ -122,9 +121,9 @@ public class CloudLibrariesPage extends WizardPage
       librariesSelectors.add(librariesSelector);
     }
     setSelectedLibraries(initialSelection);
-    RowLayout layout = new RowLayout(SWT.HORIZONTAL);
-    layout.spacing = 12;
-    composite.setLayout(layout);
+
+    GridLayoutFactory.fillDefaults().numColumns(libraryGroups.size()).generateLayout(composite);
+
     setControl(composite);
   }
 
