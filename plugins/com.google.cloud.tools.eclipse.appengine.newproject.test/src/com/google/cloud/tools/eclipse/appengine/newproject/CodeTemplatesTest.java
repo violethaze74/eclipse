@@ -31,7 +31,10 @@ import java.util.Map;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpressionException;
+import javax.xml.xpath.XPathFactory;
 import org.apache.maven.artifact.versioning.DefaultArtifactVersion;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
@@ -92,8 +95,8 @@ public class CodeTemplatesTest {
   }
 
   @Test
-  public void testMaterializeAppEngineStandardFiles_pomXmlIfEnablingMaven()
-      throws CoreException, ParserConfigurationException, SAXException, IOException {
+  public void testMaterializeAppEngineStandardFiles_pomXmlIfEnablingMaven() throws CoreException,
+      ParserConfigurationException, SAXException, IOException, XPathExpressionException {
     AppEngineProjectConfig config = new AppEngineProjectConfig();
     config.setUseMaven("my.project.group.id", "my-project-artifact-id", "98.76.54");
     CodeTemplates.materializeAppEngineStandardFiles(project, config, monitor);
@@ -118,8 +121,8 @@ public class CodeTemplatesTest {
   }
 
   @Test
-  public void testMaterializeAppEngineFlexFiles_pomXmlIfEnablingMaven()
-      throws CoreException, ParserConfigurationException, SAXException, IOException {
+  public void testMaterializeAppEngineFlexFiles_pomXmlIfEnablingMaven() throws CoreException,
+      ParserConfigurationException, SAXException, IOException, XPathExpressionException {
     AppEngineProjectConfig config = new AppEngineProjectConfig();
     config.setUseMaven("my.project.group.id", "my-project-artifact-id", "98.76.54");
     CodeTemplates.materializeAppEngineFlexFiles(project, config, monitor);
@@ -202,8 +205,8 @@ public class CodeTemplatesTest {
     }
   }
 
-  private void validateStandardPomXml()
-      throws ParserConfigurationException, SAXException, IOException, CoreException {
+  private void validateStandardPomXml() throws ParserConfigurationException, SAXException,
+      IOException, CoreException, XPathExpressionException {
     Element root = validatePom();
     
     String sdkVersion =
@@ -214,8 +217,8 @@ public class CodeTemplatesTest {
     Assert.assertTrue(sdkVersion, sdkArtifactVersion.compareTo(expectedSdk) >= 0);    
   }
 
-  private Element validatePom()
-      throws ParserConfigurationException, SAXException, IOException, CoreException {
+  private Element validatePom() throws ParserConfigurationException, SAXException, IOException,
+      CoreException, XPathExpressionException {
     IFile pomXml = project.getFile("pom.xml");
     Element root = buildDocument(pomXml).getDocumentElement();
     Assert.assertEquals("project", root.getNodeName());
@@ -237,11 +240,50 @@ public class CodeTemplatesTest {
         new DefaultArtifactVersion(pluginVersion.getTextContent());
     DefaultArtifactVersion expected = new DefaultArtifactVersion("1.3.2");
     Assert.assertTrue(artifactVersion.compareTo(expected) >= 0);
+    
+    XPath xpath = XPathFactory.newInstance().newXPath();
+    xpath.setNamespaceContext(new Maven4NamespaceContext());
+    NodeList dependencyManagementNodes = (NodeList) xpath.evaluate(
+        "./m:dependencyManagement",
+        root,
+        XPathConstants.NODESET);
+    Assert.assertEquals(1, dependencyManagementNodes.getLength());
+    
+    String bomGroupId = (String) xpath.evaluate(
+        "string(./m:dependencyManagement/m:dependencies/m:dependency/m:groupId)",
+        root,
+        XPathConstants.STRING);
+    Assert.assertEquals("com.google.cloud", bomGroupId);
+    String bomArtifactId = (String) xpath.evaluate(
+        "string(./m:dependencyManagement/m:dependencies/m:dependency/m:artifactId)",
+        root,
+        XPathConstants.STRING);
+    Assert.assertEquals("google-cloud", bomArtifactId);
+
+    DefaultArtifactVersion bomVersion = new DefaultArtifactVersion((String) xpath.evaluate(
+        "string(./m:dependencyManagement/m:dependencies/m:dependency/m:version)",
+        root,
+        XPathConstants.STRING));
+    Assert.assertTrue(
+        bomVersion.compareTo(new DefaultArtifactVersion("0.40.0-alpha")) >= 0);
+
+    String scope = (String) xpath.evaluate(
+        "string(./m:dependencyManagement/m:dependencies/m:dependency/m:scope)",
+        root,
+        XPathConstants.STRING);
+    Assert.assertEquals("import", scope);
+    
+    String type = (String) xpath.evaluate(
+        "string(./m:dependencyManagement/m:dependencies/m:dependency/m:type)",
+        root,
+        XPathConstants.STRING);
+    Assert.assertEquals("pom", type);
+    
     return root;
   }
 
-  private void validateFlexPomXml()
-      throws ParserConfigurationException, SAXException, IOException, CoreException {
+  private void validateFlexPomXml() throws ParserConfigurationException, SAXException, IOException,
+      CoreException, XPathExpressionException {
     validatePom();
   }
 
@@ -254,8 +296,7 @@ public class CodeTemplatesTest {
     factory.setAttribute("http://apache.org/xml/features/nonvalidating/load-dtd-grammar", false);
     factory.setAttribute("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
     DocumentBuilder builder = factory.newDocumentBuilder();
-    Document doc = builder.parse(xml.getContents());
-    return doc;
+    return builder.parse(xml.getContents());
   }
 
   @Test
