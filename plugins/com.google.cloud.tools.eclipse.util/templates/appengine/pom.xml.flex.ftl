@@ -18,10 +18,6 @@
     <maven.compiler.target>1.8</maven.compiler.target>
     <maven.compiler.showDeprecation>true</maven.compiler.showDeprecation>
   </properties>
-
-  <prerequisites>
-    <maven>3.3.9</maven>
-  </prerequisites>
   
   <dependencyManagement>
     <dependencies>
