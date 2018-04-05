@@ -19,6 +19,7 @@ package com.google.cloud.tools.eclipse.appengine.libraries.ui;
 import com.google.cloud.tools.eclipse.appengine.facets.AppEngineStandardFacet;
 import com.google.cloud.tools.eclipse.appengine.libraries.AnalyticsLibraryPingHelper;
 import com.google.cloud.tools.eclipse.appengine.libraries.BuildPath;
+import com.google.cloud.tools.eclipse.appengine.libraries.LibraryClasspathContainer;
 import com.google.cloud.tools.eclipse.appengine.libraries.model.CloudLibraries;
 import com.google.cloud.tools.eclipse.appengine.libraries.model.Library;
 import com.google.cloud.tools.eclipse.ui.util.images.SharedImages;
@@ -27,21 +28,25 @@ import com.google.cloud.tools.eclipse.util.MavenUtils;
 import com.google.cloud.tools.eclipse.util.status.StatusUtil;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Maps;
+import com.google.common.base.Verify;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Stream;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.NullProgressMonitor;
+import org.eclipse.jdt.core.ClasspathContainerInitializer;
 import org.eclipse.jdt.core.IClasspathEntry;
 import org.eclipse.jdt.core.IJavaProject;
+import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.ui.wizards.IClasspathContainerPage;
 import org.eclipse.jdt.ui.wizards.IClasspathContainerPageExtension;
 import org.eclipse.jface.layout.GridLayoutFactory;
@@ -74,6 +79,8 @@ public class CloudLibrariesPage extends WizardPage
   final List<LibrarySelectorGroup> librariesSelectors = new ArrayList<>();
   private IJavaProject project;
   private boolean isMavenProject;
+
+  private IClasspathEntry originalEntry;
   private IClasspathEntry newEntry;
 
   public CloudLibrariesPage() {
@@ -88,7 +95,13 @@ public class CloudLibrariesPage extends WizardPage
     this.project = javaProject;
     isMavenProject = MavenUtils.hasMavenNature(javaProject.getProject());
 
-    Map<String, String> groups = Maps.newLinkedHashMap();
+    // As we don't support multiple containers, we pretend to edit the existing container if
+    // present and cause getSelection() to return null
+    Stream<IClasspathEntry> entries =
+        currentEntries != null ? Stream.of(currentEntries) : Stream.empty();
+    originalEntry = entries.filter(LibraryClasspathContainer::isEntry).findAny().orElse(null);
+
+    Map<String, String> groups = new LinkedHashMap<>();
     if (AppEngineStandardFacet.getProjectFacetVersion(javaProject.getProject()) != null) {
       groups.put(CloudLibraries.APP_ENGINE_GROUP, Messages.getString("appengine-title")); //$NON-NLS-1$
     }
@@ -147,16 +160,27 @@ public class CloudLibrariesPage extends WizardPage
         /*
          * FIXME: BuildPath.addNativeLibrary() is too heavy-weight here. ClasspathContainerWizard,
          * our wizard, is responsible for installing the classpath entry returned by getSelection(),
-         * which will perform the library resolution. We just need to save the selected libraries 
+         * which will perform the library resolution. We just need to save the selected libraries
          * so that they are resolved later.
          */
+        BuildPath.saveLibraryList(project, libraries, new NullProgressMonitor());
         Library masterLibrary =
             BuildPath.collectLibraryFiles(project, libraries, new NullProgressMonitor());
-        newEntry = BuildPath.computeEntry(project, masterLibrary, new NullProgressMonitor());
-        BuildPath.saveLibraryList(project, libraries, new NullProgressMonitor());
-        if (newEntry == null) {
-          // container-editing only refreshes the content if new
-          BuildPath.runContainerResolverJob(project);
+        // skip computeEntry() if we have an existing entry: unnecessary and simplifies testing too
+        if (originalEntry == null) {
+          newEntry = BuildPath.computeEntry(project, masterLibrary, new NullProgressMonitor());
+          Verify.verifyNotNull(newEntry); // new entry should be created
+        } else {
+          // request update of existing entry
+          ClasspathContainerInitializer initializer =
+              JavaCore.getClasspathContainerInitializer(
+                  LibraryClasspathContainer.CONTAINER_PATH_PREFIX);
+          // this is always true for our initializer
+          if (initializer.canUpdateClasspathContainer(originalEntry.getPath(), project)) {
+            // existing entry needs to be updated
+            initializer.requestClasspathContainerUpdate(
+                originalEntry.getPath(), project, null /*containerSuggestion*/);
+          }
         }
       }
       return true;
@@ -189,7 +213,12 @@ public class CloudLibrariesPage extends WizardPage
   }
 
   @Override
-  public void setSelection(IClasspathEntry containerEntry) {
+  public void setSelection(IClasspathEntry entry) {
+    // entry == null if user is creating a new container.
+    Preconditions.checkArgument(entry == null || LibraryClasspathContainer.isEntry(entry));
+    // we should have found the existing entry already in initialize()
+    Preconditions.checkState(entry == null || entry == originalEntry);
+
     try {
       Collection<Library> savedLibraries;
       if (isMavenProject) {
@@ -219,6 +248,7 @@ public class CloudLibrariesPage extends WizardPage
 
   @Override
   public IClasspathEntry getSelection() {
+    // newEntry is null if no container was created, namely because there was an existing container
     return newEntry;
   }
 }

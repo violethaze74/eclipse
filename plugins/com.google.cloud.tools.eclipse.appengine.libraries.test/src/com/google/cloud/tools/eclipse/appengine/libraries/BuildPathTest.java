@@ -16,7 +16,10 @@
 
 package com.google.cloud.tools.eclipse.appengine.libraries;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import com.google.cloud.tools.eclipse.appengine.libraries.model.Library;
@@ -28,11 +31,12 @@ import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.Path;
+import org.eclipse.core.runtime.jobs.ISchedulingRule;
 import org.eclipse.jdt.core.IClasspathEntry;
 import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.core.JavaModelException;
 import org.eclipse.jst.common.project.facet.core.JavaFacet;
-import org.junit.Assert;
+import org.eclipse.m2e.core.MavenPlugin;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -50,12 +54,14 @@ public class BuildPathTest {
   public void setUp() throws JavaModelException {
     project = projectCreator.getJavaProject();
     initialClasspathSize = project.getRawClasspath().length;
+    assertNull(BuildPath.findMasterContainer(project));
   }
 
   @Test
   public void testAddMavenLibraries_emptyList() throws CoreException {
     List<Library> libraries = new ArrayList<>();
     BuildPath.addMavenLibraries(project.getProject(), libraries, monitor);
+    assertNull(BuildPath.findMasterContainer(project));
   }
 
   @Test
@@ -65,7 +71,8 @@ public class BuildPathTest {
     libraries.add(library);
 
     BuildPath.addNativeLibrary(project, libraries, monitor);
-    Assert.assertEquals(initialClasspathSize + 1, project.getRawClasspath().length);
+    assertEquals(initialClasspathSize + 1, project.getRawClasspath().length);
+    assertNotNull(BuildPath.findMasterContainer(project));
   }
   
   @Test
@@ -74,10 +81,11 @@ public class BuildPathTest {
     List<Library> libraries = new ArrayList<>();
     libraries.add(library);
     BuildPath.addNativeLibrary(project, libraries, monitor);
-    Assert.assertEquals(initialClasspathSize + 1, project.getRawClasspath().length);
+    assertEquals(initialClasspathSize + 1, project.getRawClasspath().length);
+    assertNotNull(BuildPath.findMasterContainer(project));
 
     BuildPath.addNativeLibrary(project, libraries, monitor);
-    Assert.assertEquals(initialClasspathSize + 1, project.getRawClasspath().length);
+    assertEquals(initialClasspathSize + 1, project.getRawClasspath().length);
   }
 
   @Test
@@ -94,17 +102,27 @@ public class BuildPathTest {
     libraries.add(library);
 
     BuildPath.addNativeLibrary(project, libraries, monitor);
-    Assert.assertEquals(initialClasspathSize + 1, project.getRawClasspath().length);
+    assertEquals(initialClasspathSize + 1, project.getRawClasspath().length);
+    assertNotNull(BuildPath.findMasterContainer(project));
     assertTrue(project.getProject().exists(librariesIdPath));
 
     // master-library container exists, so checkLibraryList should make no change
     BuildPath.checkLibraryList(project, null);
-    Assert.assertEquals(initialClasspathSize + 1, project.getRawClasspath().length);
+    assertEquals(initialClasspathSize + 1, project.getRawClasspath().length);
+    assertNotNull(BuildPath.findMasterContainer(project));
     assertTrue(project.getProject().exists(librariesIdPath));
 
     // remove the master-library container, so checkLibraryList should remove the library ids file
     project.setRawClasspath(originalClasspath, null);
     BuildPath.checkLibraryList(project, null);
     assertFalse(librariesIdPath + " not removed", project.getProject().exists(librariesIdPath));
+  }
+
+  @Test
+  public void testResolvingRule() {
+    ISchedulingRule rule = BuildPath.resolvingRule(project);
+    assertTrue(rule.contains(MavenPlugin.getProjectConfigurationManager().getRule()));
+    assertTrue(rule.isConflicting(MavenPlugin.getProjectConfigurationManager().getRule()));
+    assertTrue(rule.contains(project.getProject()));
   }
 }

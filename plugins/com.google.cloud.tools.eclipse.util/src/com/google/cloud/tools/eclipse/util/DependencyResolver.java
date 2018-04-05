@@ -21,34 +21,31 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import org.eclipse.aether.DefaultRepositorySystemSession;
+import org.eclipse.aether.RepositoryException;
 import org.eclipse.aether.RepositorySystem;
 import org.eclipse.aether.artifact.Artifact;
 import org.eclipse.aether.artifact.DefaultArtifact;
 import org.eclipse.aether.collection.CollectRequest;
-import org.eclipse.aether.resolution.ArtifactDescriptorException;
-import org.eclipse.aether.resolution.ArtifactDescriptorRequest;
 import org.eclipse.aether.graph.Dependency;
 import org.eclipse.aether.graph.DependencyFilter;
 import org.eclipse.aether.repository.RemoteRepository;
 import org.eclipse.aether.repository.RepositoryPolicy;
+import org.eclipse.aether.resolution.ArtifactDescriptorRequest;
 import org.eclipse.aether.resolution.ArtifactResult;
 import org.eclipse.aether.resolution.DependencyRequest;
-import org.eclipse.aether.resolution.DependencyResolutionException;
 import org.eclipse.aether.util.artifact.JavaScopes;
 import org.eclipse.aether.util.filter.DependencyFilterUtils;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
-import org.eclipse.m2e.core.MavenPlugin;
-import org.eclipse.m2e.core.embedder.ICallable;
+import org.eclipse.core.runtime.SubMonitor;
 import org.eclipse.m2e.core.embedder.IMavenExecutionContext;
-import org.eclipse.m2e.core.internal.MavenPluginActivator;
 
 public class DependencyResolver {
 
   /**
-   * Returns all transitive runtime dependencies of the specified Maven 
-   * jar artifact including the artifact itself.
+   * Returns all transitive runtime dependencies of the specified Maven jar artifact including the
+   * artifact itself.
    *
    * @param groupId group ID of the Maven artifact to resolve
    * @param artifactId artifact ID of the Maven artifact to resolve
@@ -58,50 +55,58 @@ public class DependencyResolver {
    */
   public static Collection<Artifact> getTransitiveDependencies(
       String groupId, String artifactId, String version, IProgressMonitor monitor)
-          throws CoreException {
+      throws CoreException {
+    return MavenUtils.runOperation(
+        monitor,
+        (context, system, progress) ->
+            _getTransitiveDependencies(context, system, groupId, artifactId, version, progress));
+  }
 
-    ICallable<List<Artifact>> callable = new ICallable<List<Artifact>>() {
-      @Override
-      public List<Artifact> call(IMavenExecutionContext context, IProgressMonitor monitor)
-          throws CoreException {
-        DependencyFilter filter = DependencyFilterUtils.classpathFilter(JavaScopes.RUNTIME);
-        // todo we'd prefer not to depend on m2e here
-        RepositorySystem system = MavenPluginActivator.getDefault().getRepositorySystem();
+  private static Collection<Artifact> _getTransitiveDependencies(
+      IMavenExecutionContext context,
+      RepositorySystem system,
+      String groupId,
+      String artifactId,
+      String version,
+      IProgressMonitor monitor)
+      throws CoreException {
+    SubMonitor progress = SubMonitor.convert(monitor);
+    DependencyFilter filter = DependencyFilterUtils.classpathFilter(JavaScopes.RUNTIME);
+    // todo we'd prefer not to depend on m2e here
 
-        CollectRequest collectRequest = new CollectRequest();
-        Artifact artifact = new DefaultArtifact(groupId + ":" + artifactId + ":" + version);
+    String coords = groupId + ":" + artifactId + ":" + version;
+    Artifact artifact = new DefaultArtifact(coords);
+    CollectRequest collectRequest = new CollectRequest();
+    collectRequest.setRoot(new Dependency(artifact, JavaScopes.RUNTIME));
+    collectRequest.setRepositories(centralRepository(system));
+    DependencyRequest request = new DependencyRequest(collectRequest, filter);
 
-        collectRequest.setRoot(new Dependency(artifact, JavaScopes.RUNTIME));
-        collectRequest.setRepositories(centralRepository(system));
-        DependencyRequest request = new DependencyRequest(collectRequest, filter);
+    // ensure checksum errors result in failure
+    DefaultRepositorySystemSession session =
+        new DefaultRepositorySystemSession(context.getRepositorySession());
+    session.setChecksumPolicy(RepositoryPolicy.CHECKSUM_POLICY_FAIL);
 
-        // ensure checksum errors result in failure
-        DefaultRepositorySystemSession session =
-            new DefaultRepositorySystemSession(context.getRepositorySession());
-        session.setChecksumPolicy(RepositoryPolicy.CHECKSUM_POLICY_FAIL);
-
-        try {
-          List<ArtifactResult> artifacts =
-              system.resolveDependencies(session, request).getArtifactResults();
-          List<Artifact> dependencies = new ArrayList<>();
-          for (ArtifactResult result : artifacts) {
-            Artifact dependency = result.getArtifact();
-            dependencies.add(dependency);
-          }
-          return dependencies;
-        } catch (DependencyResolutionException ex) {
-          throw new CoreException(StatusUtil.error(this, "Could not resolve dependencies", ex));
-        } catch (NullPointerException ex) {
-          throw new CoreException(StatusUtil.error(this,
-              "Possible corrupt artifact in local .m2 repository for " + artifact, ex));
-        }
+    try {
+      List<ArtifactResult> artifacts =
+          system.resolveDependencies(session, request).getArtifactResults();
+      progress.setWorkRemaining(artifacts.size());
+      List<Artifact> dependencies = new ArrayList<>();
+      for (ArtifactResult result : artifacts) {
+        Artifact dependency = result.getArtifact();
+        dependencies.add(dependency);
+        progress.worked(1);
       }
-
-    };
-    
-    IMavenExecutionContext context = MavenPlugin.getMaven().createExecutionContext();
-
-    return context.execute(callable, monitor);
+      return dependencies;
+    } catch (RepositoryException ex) {
+      throw new CoreException(
+          StatusUtil.error(DependencyResolver.class, "Could not resolve dependencies", ex));
+    } catch (NullPointerException ex) {
+      throw new CoreException(
+          StatusUtil.error(
+              DependencyResolver.class,
+              "Possible corrupt artifact in local .m2 repository for " + coords,
+              ex));
+    }
   }
 
   private static List<RemoteRepository> centralRepository(RepositorySystem system) {
@@ -113,42 +118,42 @@ public class DependencyResolver {
     return repositories;
   }
 
-  public static Collection<Dependency> getManagedDependencies(String groupId, String artifactId,
-      String version, IProgressMonitor monitor) throws CoreException {
-    
-    ICallable<List<Dependency>> callable = new ICallable<List<Dependency>>() {
-      @Override
-      public List<Dependency> call(IMavenExecutionContext context, IProgressMonitor monitor)
-          throws CoreException {
-        
-        // todo we'd prefer not to depend on m2e here
-        RepositorySystem system = MavenPluginActivator.getDefault().getRepositorySystem();
+  public static Collection<Dependency> getManagedDependencies(
+      String groupId, String artifactId, String version, IProgressMonitor monitor)
+      throws CoreException {
 
-        ArtifactDescriptorRequest request = new ArtifactDescriptorRequest();
-        Artifact artifact = new DefaultArtifact(groupId + ":" + artifactId + ":" + version);
+    return MavenUtils.runOperation(
+        monitor,
+        (context, system, progress) ->
+            _getManagedDependencies(context, system, groupId, artifactId, version, progress));
+  }
 
-        request.setArtifact(artifact);
-        request.setRepositories(centralRepository(system));
+  private static Collection<Dependency> _getManagedDependencies(
+      IMavenExecutionContext context,
+      RepositorySystem system,
+      String groupId,
+      String artifactId,
+      String version,
+      SubMonitor monitor)
+      throws CoreException {
+    ArtifactDescriptorRequest request = new ArtifactDescriptorRequest();
+    String coords = groupId + ":" + artifactId + ":" + version;
+    Artifact artifact = new DefaultArtifact(coords);
+    request.setArtifact(artifact);
+    request.setRepositories(centralRepository(system));
 
-        // ensure checksum errors result in failure
-        DefaultRepositorySystemSession session =
-            new DefaultRepositorySystemSession(context.getRepositorySession());
-        session.setChecksumPolicy(RepositoryPolicy.CHECKSUM_POLICY_FAIL);
+    // ensure checksum errors result in failure
+    DefaultRepositorySystemSession session =
+        new DefaultRepositorySystemSession(context.getRepositorySession());
+    session.setChecksumPolicy(RepositoryPolicy.CHECKSUM_POLICY_FAIL);
 
-        try {
-          List<Dependency> managedDependencies =
-              system.readArtifactDescriptor(session, request).getManagedDependencies();
-          return managedDependencies;
-        } catch (ArtifactDescriptorException ex) {
-          IStatus status = StatusUtil.error(DependencyResolver.class, ex.getMessage(), ex);
-          throw new CoreException(status);
-        }
-        
-      }
-    };
-    // todo we'd prefer not to depend on m2e here
-    IMavenExecutionContext context = MavenPlugin.getMaven().createExecutionContext();
-
-    return context.execute(callable, monitor);
+    try {
+      List<Dependency> managedDependencies =
+          system.readArtifactDescriptor(session, request).getManagedDependencies();
+      return managedDependencies;
+    } catch (RepositoryException ex) {
+      IStatus status = StatusUtil.error(DependencyResolver.class, ex.getMessage(), ex);
+      throw new CoreException(status);
+    }
   }
 }

@@ -19,7 +19,10 @@ package com.google.cloud.tools.eclipse.appengine.localserver;
 import com.google.cloud.tools.eclipse.appengine.libraries.ILibraryClasspathContainerResolverService;
 import com.google.cloud.tools.eclipse.appengine.libraries.repository.ILibraryRepositoryService;
 import com.google.cloud.tools.eclipse.util.MavenUtils;
-import com.google.common.collect.ObjectArrays;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.inject.Inject;
@@ -67,41 +70,43 @@ public class ServletClasspathProvider extends RuntimeClasspathProviderDelegate {
     } catch (CoreException ex) {
       logger.log(Level.WARNING, "Unable to obtain jst.web facet version", ex);
     }
-    return doResolveClasspathContainer(webFacetVersion);
-  }
-
-  // This method is called often as the result of user initiated UI actions, e.g. when the user
-  // clicks through the project in the Project Explorer to drill down into the libraries
-  // attached to the project. This method resolves the servlet and jsp jars each time instead of
-  // persisting the resolved version the first time and using that later.
-  @Override
-  public IClasspathEntry[] resolveClasspathContainer(IRuntime runtime) {
-    return doResolveClasspathContainer(DEFAULT_DYNAMIC_WEB_VERSION);
-  }
-
-  private IClasspathEntry[] doResolveClasspathContainer(IProjectFacetVersion dynamicWebVersion) {
-
-    String servletApiId;
-    String jspApiId;
-    if (WebFacetUtils.WEB_31.equals(dynamicWebVersion)
-        || WebFacetUtils.WEB_30.equals(dynamicWebVersion)) {
-      servletApiId = "servlet-api-3.1";
-      jspApiId = "jsp-api-2.3";
-    } else {
-      servletApiId = "servlet-api-2.5";
-      jspApiId = "jsp-api-2.1";
-    }
 
     try {
-      IClasspathEntry[] apiEntries =
-          resolverService.resolveLibraryAttachSourcesSync(servletApiId);
-      IClasspathEntry[] jspApiEntries = resolverService.resolveLibraryAttachSourcesSync(jspApiId);
-      IClasspathEntry[] result =
-          ObjectArrays.concat(apiEntries, jspApiEntries, IClasspathEntry.class);
-      return result;
-    } catch (CoreException ex) {
+      String[] apiLibraryIds = getApiLibraryIds(webFacetVersion);
+      ListenableFuture<IClasspathEntry[]> apiEntries =
+          resolverService.resolveLibraryAttachSources(apiLibraryIds);
+      // may return immediately if cached or locally available
+      if (apiEntries.isDone()) {
+        return apiEntries.get();
+      }
+      Futures.addCallback(
+          apiEntries,
+          new FutureCallback<IClasspathEntry[]>() {
+            @Override
+            public void onSuccess(IClasspathEntry[] entries) {
+              requestClasspathContainerUpdate(runtime, entries);
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+              logger.log(Level.WARNING, "Failed to resolve servlet APIs", t);
+            }
+          });
+    } catch (CoreException | ExecutionException ex) {
       logger.log(Level.WARNING, "Failed to initialize libraries", ex);
+    } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
     }
     return null;
+  }
+
+  /** Return the Library IDs for the Servlet APIs for the given dynamic web facet version. */
+  private String[] getApiLibraryIds(IProjectFacetVersion dynamicWebVersion) {
+    if (WebFacetUtils.WEB_31.equals(dynamicWebVersion)
+        || WebFacetUtils.WEB_30.equals(dynamicWebVersion)) {
+      return new String[] {"servlet-api-3.1", "jsp-api-2.3"};
+    } else {
+      return new String[] {"servlet-api-2.5", "jsp-api-2.1"};
+    }
   }
 }
