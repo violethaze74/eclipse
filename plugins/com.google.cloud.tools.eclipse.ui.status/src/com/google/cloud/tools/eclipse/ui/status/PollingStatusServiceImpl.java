@@ -28,13 +28,16 @@ import java.io.Reader;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.Proxy.Type;
+import java.net.SocketException;
 import java.net.URI;
 import java.net.URLConnection;
+import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.eclipse.core.net.proxy.IProxyData;
 import org.eclipse.core.net.proxy.IProxyService;
@@ -137,8 +140,17 @@ public class PollingStatusServiceImpl implements GcpStatusMonitoringService {
               new GcpStatus(highestSeverity, Joiner.on(", ").join(affectedServices), activeIncidents); //$NON-NLS-1$
         }
       }
+    } catch (UnknownHostException | SocketException ex) {
+      logger.log(Level.WARNING, "Cannot connect to GCP: " + ex); // $NON-NLS1$
+      currentStatus =
+          new GcpStatus(
+              Severity.ERROR, Messages.getString("cannot.connect.to.gcp"), null); //$NON-NLS1$
     } catch (IOException ex) {
-      currentStatus = new GcpStatus(Severity.ERROR, ex.toString(), null);
+      // Could be a JSON error
+      logger.log(Level.WARNING, "Failure retrieving GCP status", ex); // $NON-NLS1$
+      currentStatus =
+          new GcpStatus(
+              Severity.ERROR, Messages.getString("failure.retrieving.status"), null); //$NON-NLS1$
     }
     for (Consumer<GcpStatusMonitoringService> listener : listeners) {
       listener.accept(this);
