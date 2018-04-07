@@ -22,16 +22,21 @@ import com.google.cloud.tools.eclipse.appengine.deploy.standard.StandardStagingD
 import com.google.cloud.tools.eclipse.appengine.deploy.ui.DeployCommandHandler;
 import com.google.cloud.tools.eclipse.appengine.deploy.ui.DeployPreferencesDialog;
 import com.google.cloud.tools.eclipse.appengine.deploy.ui.Messages;
+import com.google.cloud.tools.eclipse.appengine.facets.WebProjectUtil;
 import com.google.cloud.tools.eclipse.googleapis.IGoogleApiFactory;
 import com.google.cloud.tools.eclipse.login.IGoogleLoginService;
 import com.google.cloud.tools.eclipse.usagetracker.AnalyticsEvents;
+import com.google.cloud.tools.eclipse.util.jdt.JreDetector;
 import java.nio.file.Path;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.launching.IVMInstall;
+import org.eclipse.jdt.launching.IVMInstall2;
 import org.eclipse.jdt.launching.JavaRuntime;
+import org.eclipse.jface.dialogs.IDialogConstants;
+import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.swt.widgets.Shell;
 
 public class StandardDeployCommandHandler extends DeployCommandHandler {
@@ -41,8 +46,47 @@ public class StandardDeployCommandHandler extends DeployCommandHandler {
   }
 
   @Override
-  protected DeployPreferencesDialog newDeployPreferencesDialog(Shell shell, IProject project,
-      IGoogleLoginService loginService, IGoogleApiFactory googleApiFactory) {
+  protected boolean checkProject(Shell shell, IProject project) throws CoreException {
+    // If we have JSPs, ensure the project is configured with a JDK: required by staging
+    // which precompiles the JSPs.  We could try to find a compatible JDK, but there's
+    // a possibility that we select an inappropriate one and introduce problems.
+    if (!WebProjectUtil.hasJsps(project)) {
+      return true;
+    }
+
+    IJavaProject javaProject = JavaCore.create(project);
+    IVMInstall vmInstall = JavaRuntime.getVMInstall(javaProject);
+    if (JreDetector.isDevelopmentKit(vmInstall)) {
+      return true;
+    }
+
+    String title = Messages.getString("vm.is.jre.title");
+    String message =
+        Messages.getString(
+            "vm.is.jre.proceed",
+            project.getName(),
+            describeVm(vmInstall),
+            vmInstall.getInstallLocation());
+    String[] buttonLabels =
+        new String[] {Messages.getString("deploy.button"), IDialogConstants.CANCEL_LABEL};
+    MessageDialog dialog =
+        new MessageDialog(shell, title, null, message, MessageDialog.QUESTION, 0, buttonLabels);
+    return dialog.open() == 0;
+  }
+
+  private String describeVm(IVMInstall vmInstall) {
+    if (vmInstall instanceof IVMInstall2) {
+      return vmInstall.getName() + " (" + ((IVMInstall2) vmInstall).getJavaVersion() + ")";
+    }
+    return vmInstall.getName();
+  }
+
+  @Override
+  protected DeployPreferencesDialog newDeployPreferencesDialog(
+      Shell shell,
+      IProject project,
+      IGoogleLoginService loginService,
+      IGoogleApiFactory googleApiFactory) {
     String title = Messages.getString("deploy.preferences.dialog.title.standard");
     return new StandardDeployPreferencesDialog(
         shell, title, project, loginService, googleApiFactory);
@@ -50,23 +94,17 @@ public class StandardDeployCommandHandler extends DeployCommandHandler {
 
   @Override
   protected StagingDelegate getStagingDelegate(IProject project) {
-    // TODO: this may still not be a JDK (although it will be very likely):
-    // https://github.com/GoogleCloudPlatform/google-cloud-eclipse/issues/2195#issuecomment-318439239
-    Path javaHome = getProjectVm(project);
-    return new StandardStagingDelegate(project, javaHome);
-  }
-
-  private static Path getProjectVm(IProject project) {
+    Path javaHome = null;
     try {
       IJavaProject javaProject = JavaCore.create(project);
       IVMInstall vmInstall = JavaRuntime.getVMInstall(javaProject);
       if (vmInstall != null) {
-        return vmInstall.getInstallLocation().toPath();
+        javaHome = vmInstall.getInstallLocation().toPath();
       }
     } catch (CoreException ex) {
       // Give up.
     }
-    return null;
+    return new StandardStagingDelegate(project, javaHome);
   }
 
   @Override
