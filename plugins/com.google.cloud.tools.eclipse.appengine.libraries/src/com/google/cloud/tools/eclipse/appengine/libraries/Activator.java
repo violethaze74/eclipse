@@ -16,10 +16,12 @@
 
 package com.google.cloud.tools.eclipse.appengine.libraries;
 
+import org.eclipse.core.resources.IWorkspace;
 import org.eclipse.core.resources.WorkspaceJob;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
+import org.eclipse.core.runtime.jobs.ISchedulingRule;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.jdt.core.ElementChangedEvent;
 import org.eclipse.jdt.core.IElementChangedListener;
@@ -36,7 +38,7 @@ public class Activator implements BundleActivator {
    * Listen for changes to Java project classpath containers. If our Google Cloud Libraries
    * container has been removed, then clean up any definition files.
    */
-  private IElementChangedListener listener = new IElementChangedListener() {
+  private static final IElementChangedListener listener = new IElementChangedListener() {
     @Override
     public void elementChanged(ElementChangedEvent event) {
       visit(event.getDelta());
@@ -54,6 +56,9 @@ public class Activator implements BundleActivator {
                 return Status.OK_STATUS;
               }
             };
+            IWorkspace workspace = javaProject.getProject().getWorkspace();
+            ISchedulingRule buildRule = workspace.getRuleFactory().buildRule();
+            updateContainerStateJob.setRule(buildRule);
             updateContainerStateJob.setSystem(true);
             updateContainerStateJob.schedule();
           }
