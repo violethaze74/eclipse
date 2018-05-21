@@ -22,9 +22,11 @@ import com.google.cloud.tools.appengine.api.devserver.DefaultRunConfiguration;
 import com.google.cloud.tools.appengine.api.devserver.DefaultStopConfiguration;
 import com.google.cloud.tools.appengine.cloudsdk.CloudSdk;
 import com.google.cloud.tools.appengine.cloudsdk.CloudSdkAppEngineDevServer1;
-import com.google.cloud.tools.appengine.cloudsdk.CloudSdkAppEngineDevServer2;
 import com.google.cloud.tools.appengine.cloudsdk.CloudSdkNotFoundException;
+import com.google.cloud.tools.appengine.cloudsdk.LocalRun;
+import com.google.cloud.tools.appengine.cloudsdk.process.LegacyProcessHandler;
 import com.google.cloud.tools.appengine.cloudsdk.process.ProcessExitListener;
+import com.google.cloud.tools.appengine.cloudsdk.process.ProcessHandler;
 import com.google.cloud.tools.appengine.cloudsdk.process.ProcessOutputLineListener;
 import com.google.cloud.tools.appengine.cloudsdk.process.ProcessStartListener;
 import com.google.cloud.tools.appengine.cloudsdk.serialization.CloudSdkVersion;
@@ -366,16 +368,20 @@ public class LocalAppEngineServerBehaviour extends ServerBehaviourDelegate
     // dev_appserver output goes to stderr
     cloudSdk = new CloudSdk.Builder()
         .javaHome(javaHomePath)
+        .build();
+
+    ProcessHandler processHandler = LegacyProcessHandler.builder()
         .addStdOutLineListener(stdoutListener).addStdErrLineListener(stderrListener)
         .addStdErrLineListener(serverOutputListener)
-        .startListener(localAppEngineStartListener)
-        .exitListener(localAppEngineExitListener)
+        .setStartListener(localAppEngineStartListener)
+        .setExitListener(localAppEngineExitListener)
         .async(true)
         .build();
 
+    LocalRun localRun = LocalRun.builder(cloudSdk).build();
     devServer = LocalAppEngineServerLaunchConfigurationDelegate.DEV_APPSERVER2
-        ? new CloudSdkAppEngineDevServer2(cloudSdk)
-        : new CloudSdkAppEngineDevServer1(cloudSdk);
+        ? localRun.newDevAppServer2(processHandler)
+        : localRun.newDevAppServer1(processHandler);
     moduleToUrlMap.clear();
   }
   

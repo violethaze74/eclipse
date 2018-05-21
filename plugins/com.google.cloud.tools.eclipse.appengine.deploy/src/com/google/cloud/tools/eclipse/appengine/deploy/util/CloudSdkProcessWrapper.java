@@ -16,8 +16,14 @@
 
 package com.google.cloud.tools.eclipse.appengine.deploy.util;
 
+import com.google.cloud.tools.appengine.api.deploy.AppEngineDeployment;
+import com.google.cloud.tools.appengine.api.deploy.AppEngineStandardStaging;
+import com.google.cloud.tools.appengine.cloudsdk.AppCfg;
 import com.google.cloud.tools.appengine.cloudsdk.CloudSdk;
 import com.google.cloud.tools.appengine.cloudsdk.CloudSdkNotFoundException;
+import com.google.cloud.tools.appengine.cloudsdk.Gcloud;
+import com.google.cloud.tools.appengine.cloudsdk.process.LegacyProcessHandler;
+import com.google.cloud.tools.appengine.cloudsdk.process.ProcessHandler;
 import com.google.cloud.tools.appengine.cloudsdk.process.ProcessOutputLineListener;
 import com.google.cloud.tools.appengine.cloudsdk.process.StringBuilderProcessOutputLineListener;
 import com.google.cloud.tools.eclipse.appengine.deploy.AppEngineProjectDeployer;
@@ -38,19 +44,18 @@ import org.eclipse.core.runtime.Status;
 import org.eclipse.ui.console.MessageConsoleStream;
 
 /**
- * Helper class wrapping {@link CloudSdk} to hide the bulk of low-level work dealing with process
- * cancellation, process exit monitoring, error output line collection, standard output collection,
- * etc. Intended to be used exclusively by {@link StandardStagingDelegate} and
- * {@link AppEngineProjectDeployer} for their convenience.
+ * Helper class wrapping a process created by {@link CloudSdk} to hide the bulk of low-level work
+ * dealing with process cancellation, process exit monitoring, error output line collection,
+ * standard output collection, etc. Intended to be used exclusively by {@link
+ * StandardStagingDelegate} and {@link AppEngineProjectDeployer} for their convenience.
  */
 public class CloudSdkProcessWrapper {
-
-  private CloudSdk cloudSdk;
 
   private Process process;
   private boolean interrupted;
   private IStatus exitStatus = Status.OK_STATUS;
   private ProcessOutputLineListener stdOutCaptor;
+  private boolean initialized = false;
 
   /**
    * Collects messages of any gcloud structure log lines whose severity is ERROR. Note that the
@@ -61,25 +66,36 @@ public class CloudSdkProcessWrapper {
   /**
    * Sets up a {@link CloudSdk} to be used for App Engine deploy.
    */
-  public void setUpDeployCloudSdk(Path credentialFile, MessageConsoleStream normalOutputStream)
-      throws CloudSdkNotFoundException {
+  public AppEngineDeployment getAppEngineDeployment(Path credentialFile,
+      MessageConsoleStream normalOutputStream) throws CloudSdkNotFoundException {
     Preconditions.checkNotNull(credentialFile, "credential required for deploying");
     Preconditions.checkArgument(Files.exists(credentialFile), "non-existing credential file");
-    Preconditions.checkState(cloudSdk == null, "CloudSdk already set up");
+    Preconditions.checkState(!initialized, "process wrapper already set up");
+    initialized = true;
 
-    // Structured deploy result (in JSON format) goes to stdout, so prepare to capture that.
+    CloudSdk cloudSdk = new CloudSdk.Builder().build();
+    Gcloud gcloud = Gcloud.builder(cloudSdk)
+        .setCredentialFile(credentialFile.toFile())
+        .setMetricsEnvironment(CloudToolsInfo.METRICS_NAME, CloudToolsInfo.getToolsVersion())
+        .setShowStructuredLogs("always")  // turns on gcloud structured log
+        .setOutputFormat("json")  // Deploy result will be in JSON.
+        .build();
+
+    // Gcloud sends structured deploy result (in JSON format) to stdout, so prepare to capture that.
     stdOutCaptor = new StringBuilderProcessOutputLineListener();
-    // Structured gcloud logs (in JSON format) go to stderr, so prepare to capture them.
+    // Gcloud sends structured gcloud logs (in JSON format) to stderr, so prepare to capture them.
     gcloudErrorMessageCollector = new GcloudStructuredLogErrorMessageCollector();
 
-    // Normal operation output goes to stderr.
-    MessageConsoleStream stdErrOutputStream = normalOutputStream;
-    CloudSdk.Builder cloudSdkBuilder = getBaseCloudSdkBuilder(stdErrOutputStream)
-        .appCommandCredentialFile(credentialFile.toFile())
-        .appCommandShowStructuredLogs("always")  // turns on gcloud structured log
+    ProcessHandler processHandler = LegacyProcessHandler.builder()
+        .setStartListener(this::storeProcessObject)
+        .setExitListener(this::recordProcessExitCode)
+        // Gcloud sends normal operation output to stderr.
+        .addStdErrLineListener(new MessageConsoleWriterListener(normalOutputStream))
         .addStdErrLineListener(gcloudErrorMessageCollector)
-        .addStdOutLineListener(stdOutCaptor);
-    cloudSdk = cloudSdkBuilder.build();
+        .addStdOutLineListener(stdOutCaptor)
+        .build();
+
+    return gcloud.newDeployment(processHandler);
   }
 
   /**
@@ -88,32 +104,24 @@ public class CloudSdkProcessWrapper {
    * @param javaHome JDK/JRE to 1) run {@code com.google.appengine.tools.admin.AppCfg} from
    *     {@code appengine-tools-api.jar}; and 2) compile JSPs during staging
    */
-  public void setUpStandardStagingCloudSdk(Path javaHome,
+  public AppEngineStandardStaging getAppEngineStandardStaging(Path javaHome,
       MessageConsoleStream stdoutOutputStream, MessageConsoleStream stderrOutputStream) 
           throws CloudSdkNotFoundException {
-    Preconditions.checkState(cloudSdk == null, "CloudSdk already set up");
+    Preconditions.checkState(!initialized, "process wrapper already set up");
+    initialized = true;
 
-    CloudSdk.Builder cloudSdkBuilder = getBaseCloudSdkBuilder(stderrOutputStream)
-        .addStdOutLineListener(new MessageConsoleWriterListener(stdoutOutputStream));
-    if (javaHome != null) {
-      cloudSdkBuilder.javaHome(javaHome);
-    }
-    cloudSdk = cloudSdkBuilder.build();
-  }
+    CloudSdk cloudSdk = javaHome == null
+        ? new CloudSdk.Builder().build()
+        : new CloudSdk.Builder().javaHome(javaHome).build();
 
-  private CloudSdk.Builder getBaseCloudSdkBuilder(MessageConsoleStream stdErrStream) {
-    return new CloudSdk.Builder()
-        .addStdErrLineListener(new MessageConsoleWriterListener(stdErrStream))
-        .startListener(this::storeProcessObject)
-        .exitListener(this::recordProcessExitCode)
-        .appCommandMetricsEnvironment(CloudToolsInfo.METRICS_NAME)
-        .appCommandMetricsEnvironmentVersion(CloudToolsInfo.getToolsVersion())
-        .appCommandOutputFormat("json");  // Deploy result will be in JSON.
-  }
+    ProcessHandler processHandler = LegacyProcessHandler.builder()
+        .setStartListener(this::storeProcessObject)
+        .setExitListener(this::recordProcessExitCode)
+        .addStdOutLineListener(new MessageConsoleWriterListener(stdoutOutputStream))
+        .addStdErrLineListener(new MessageConsoleWriterListener(stderrOutputStream))
+        .build();
 
-  public CloudSdk getCloudSdk() {
-    Preconditions.checkNotNull(cloudSdk, "wrapper not set up");
-    return cloudSdk;
+    return AppCfg.builder(cloudSdk).build().newStaging(processHandler);
   }
 
   public void interrupt() {
