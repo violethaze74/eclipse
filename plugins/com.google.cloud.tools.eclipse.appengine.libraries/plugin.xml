@@ -45,19 +45,18 @@
     
     <library
           id="objectify"
-          group="appengine"
+          group="appengine,flexible"
           name="Objectify"
           tooltip="%objectify.tooltip"
           dependencies="include"
           siteUri="https://github.com/objectify/objectify/wiki" >
-      <libraryDependency id="appengine-api" />
       <libraryFile
           export="true"
-          javadocUri="https://www.javadoc.io/doc/com.googlecode.objectify/objectify/5.1.22">
+          javadocUri="https://www.javadoc.io/doc/com.googlecode.objectify/objectify/6.0">
         <mavenCoordinates
               artifactId="objectify"
               groupId="com.googlecode.objectify"
-              version="5.1.22" />
+              version="6.0" />
       </libraryFile>
     </library>
 
