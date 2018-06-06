@@ -16,30 +16,32 @@
 
 package com.google.cloud.tools.eclipse.util.io;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import org.eclipse.core.resources.IContainer;
+import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
+import org.eclipse.core.resources.IResourceDelta;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.SubMonitor;
 
-/**
- * Utility methods for handling Eclipse Core Resources.
- */
+/** Utility methods for handling Eclipse Core Resources. */
 public class ResourceUtils {
 
   /**
    * Create the components of the provided folder as required. Assumes the containing project
    * already exists.
-   * 
+   *
    * @param folder the path to be created if it does not already exist
    * @param monitor may be {@code null}
    * @throws CoreException on error
    */
   public static void createFolders(IContainer folder, IProgressMonitor monitor)
       throws CoreException {
-    
+
     IPath path = folder.getProjectRelativePath();
     IContainer current = folder.getProject();
     SubMonitor progress = SubMonitor.convert(monitor, path.segmentCount());
@@ -54,5 +56,17 @@ public class ResourceUtils {
     }
   }
 
-
+  public static Collection<IFile> getAffectedFiles(IResourceDelta topDelta) throws CoreException {
+    Collection<IFile> files = new ArrayList<>();
+    topDelta.accept(
+        delta -> {
+          if (delta.getResource() instanceof IFile) {
+            files.add((IFile) delta.getResource());
+            return false;
+          } else {
+            return true;
+          }
+        });
+    return files;
+  }
 }
