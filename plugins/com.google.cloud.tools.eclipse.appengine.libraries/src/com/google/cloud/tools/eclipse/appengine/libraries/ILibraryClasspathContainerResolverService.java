@@ -17,11 +17,11 @@
 package com.google.cloud.tools.eclipse.appengine.libraries;
 
 import com.google.cloud.tools.eclipse.appengine.libraries.model.Library;
-import com.google.common.util.concurrent.ListenableFuture;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.jobs.ISchedulingRule;
 import org.eclipse.jdt.core.IClasspathEntry;
 import org.eclipse.jdt.core.IJavaProject;
 
@@ -31,18 +31,25 @@ import org.eclipse.jdt.core.IJavaProject;
 public interface ILibraryClasspathContainerResolverService {
 
   /**
-   * Resolves all {@link LibraryClasspathContainer}s found on the classpath of
-   * <code>javaProject</code>. Source attachment for the resolved libraries will happen
-   * asynchronously.
+   * Return the minimum scheduling rule required for calls to this service. The service will obtain
+   * the rule when there is no current scheduling rule.
+   */
+  ISchedulingRule getSchedulingRule();
+
+  /**
+   * Resolves all {@link LibraryClasspathContainer}s found on the classpath of <code>javaProject
+   * </code>. Source attachment for the resolved libraries will happen asynchronously. If callers
+   * are operating under a scheduling rule, it must at least contain {@link #getSchedulingRule()}.
    */
   IStatus resolveAll(IJavaProject javaProject, IProgressMonitor monitor);
 
   /**
-   * Resolves the binary and source artifacts corresponding to the {@link Library} identified by
-   * <code>libraryIds</code> asynchronously and creates the {@link IClasspathEntry}s referring them.
+   * Resolves the binary and source artifacts corresponding to the {@link Library libraries}
+   * identified by <code>libraryIds</code> synchronously and creates the {@link IClasspathEntry}s
+   * referring them. If callers are operating under a scheduling rule, it should at least contain
+   * {@link #getSchedulingRule()}.
    */
-  ListenableFuture<IClasspathEntry[]> resolveLibraryAttachSources(String... libraryIds)
-      throws CoreException;
+  IClasspathEntry[] resolveLibrariesAttachSources(String... libraryIds) throws CoreException;
 
   /**
    * Resolves a single {@link LibraryClasspathContainer} corresponding to <code>containerPath</code>
