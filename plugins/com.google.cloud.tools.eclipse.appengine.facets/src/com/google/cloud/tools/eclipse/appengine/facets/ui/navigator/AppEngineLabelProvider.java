@@ -20,6 +20,7 @@ import com.google.cloud.tools.appengine.AppEngineDescriptor;
 import com.google.cloud.tools.appengine.api.AppEngineException;
 import com.google.cloud.tools.eclipse.appengine.facets.WebProjectUtil;
 import com.google.cloud.tools.eclipse.appengine.facets.ui.navigator.model.AppEngineResourceElement;
+import com.google.cloud.tools.eclipse.appengine.facets.ui.navigator.model.AppEngineStandardProjectElement;
 import com.google.cloud.tools.eclipse.appengine.facets.ui.navigator.model.DatastoreIndexesDescriptor;
 import com.google.cloud.tools.eclipse.appengine.ui.AppEngineImages;
 import com.google.cloud.tools.eclipse.ui.util.images.SharedImages;
@@ -62,6 +63,8 @@ public class AppEngineLabelProvider extends LabelProvider implements IStyledLabe
   public StyledString getStyledText(Object element) {
     if (element instanceof IProject && AppEngineContentProvider.isStandard((IProject) element)) {
       return getAppEngineStandardProjectText((IProject) element);
+    } else if (element instanceof AppEngineStandardProjectElement) {
+      return ((AppEngineStandardProjectElement) element).getStyledLabel();
     } else if (element instanceof AppEngineResourceElement) {
       return ((AppEngineResourceElement) element).getStyledLabel();
     }
@@ -70,6 +73,7 @@ public class AppEngineLabelProvider extends LabelProvider implements IStyledLabe
 
   @VisibleForTesting
   static StyledString getAppEngineStandardProjectText(IProject project) {
+    // FIXME: this is grotty; can we not get the content provider?
     IFile appEngineWeb = WebProjectUtil.findInWebInf(project, new Path("appengine-web.xml"));
     if (appEngineWeb == null || !appEngineWeb.exists()) {
       // continue on to the next
@@ -121,10 +125,11 @@ public class AppEngineLabelProvider extends LabelProvider implements IStyledLabe
     } else if (element instanceof DatastoreIndexesDescriptor) {
       return resources.createImage(SharedImages.DATASTORE_GREY_IMAGE_DESCRIPTOR);
     } else if (element instanceof AppEngineResourceElement) {
-      // todo CronDescriptor should be a timer/clock?
-      // todo DenialOfServiceDescriptor should be a do-not-enter?
-      // todo DispatchRoutingDescriptor should be a path fork?
-      // todo TaskQueuesDescriptor
+      // todo Get better images for these resource elements
+      // CronDescriptor could be a timer/clock?
+      // DenialOfServiceDescriptor could be a do-not-enter?
+      // DispatchRoutingDescriptor could be a path fork?
+      // TaskQueuesDescriptor could be a tree-like branch?
       return resources.createImage(AppEngineImages.APPENGINE_GREY_IMAGE_DESCRIPTOR);
     }
     return null;

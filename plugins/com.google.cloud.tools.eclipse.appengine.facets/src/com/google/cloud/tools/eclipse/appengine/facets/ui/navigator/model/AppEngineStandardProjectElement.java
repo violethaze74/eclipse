@@ -19,46 +19,126 @@ package com.google.cloud.tools.eclipse.appengine.facets.ui.navigator.model;
 import com.google.cloud.tools.appengine.AppEngineDescriptor;
 import com.google.cloud.tools.appengine.api.AppEngineException;
 import com.google.cloud.tools.eclipse.appengine.facets.WebProjectUtil;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collection;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.function.Function;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.IAdaptable;
+import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.jface.viewers.StyledString;
 import org.xml.sax.SAXException;
 
-/** A model representation of the {@code appengine-web.xml}. */
-public class AppEngineStandardProjectElement extends AppEngineResourceElement {
+/**
+ * A model representation of an App Engine project. App Engine projects always have a descriptor
+ * (e.g., {@code appengine-web.xml}) that may provide their environment, runtime type, and Service
+ * ID. This element manages model representations of the various App Engine configuration files.
+ */
+public class AppEngineStandardProjectElement implements IAdaptable {
+
+  /** Special project file that describes the virtual folder layout used for building WARs. */
+  private static final IPath WTP_COMPONENT_PATH =
+      new Path(".settings/org.eclipse.wst.common.component"); // $NON-NLS-1$
+
+  /** Special project file that records the project's facets. */
+  private static final IPath WTP_FACETS_PATH =
+      new Path(".settings/org.eclipse.wst.common.project.facet.core.xml"); // $NON-NLS-1$
+
+  /** Factories to create model elements for the various App Engine configuration files. */
+  private static final Map<String, Function<IFile, AppEngineResourceElement>> elementFactories =
+      new ImmutableMap.Builder<String, Function<IFile, AppEngineResourceElement>>()
+          .put("cron.xml", file -> new CronDescriptor(file)) // $NON-NLS-1$
+          .put("datastore-indexes.xml", file -> new DatastoreIndexesDescriptor(file)) // $NON-NLS-1$
+          .put("queue.xml", file -> new TaskQueuesDescriptor(file)) // $NON-NLS-1$
+          .put("dos.xml", file -> new DenialOfServiceDescriptor(file)) // $NON-NLS-1$
+          .put("dispatch.xml", file -> new DispatchRoutingDescriptor(file)) // $NON-NLS-1$
+          .build();
 
   /**
    * Create and populate for the given project.
    *
-   * @throws AppEngineException when unable to retrieve from the appengine-web.xml
+   * @throws AppEngineException when unable to parse the descriptor file ({@code appengine-web.xml})
    */
   public static AppEngineStandardProjectElement create(IProject project) throws AppEngineException {
     AppEngineStandardProjectElement appEngineProject = new AppEngineStandardProjectElement(project);
-    appEngineProject.reloadDescriptor();
-    appEngineProject.reloadConfigurationFiles();
+    appEngineProject.reload();
     return appEngineProject;
   }
 
-  private AppEngineDescriptor descriptor;
   /**
-   * Map of <em>base-file-name &rarr; model-element</em> pairs, sorted by the
-   * <em>base-file-name</em> (e.g., <code>dispatch.xml</code>).
+   * Find the App Engine descriptor ({@code appengine-web.xml}) for this project.
+   *
+   * @throws AppEngineException if the descriptor cannot be found
    */
-  private final Map<String, AppEngineResourceElement> configurations = new TreeMap<>();
-
-  private AppEngineStandardProjectElement(IProject project) {
-    super(project, WebProjectUtil.findInWebInf(project, new Path("appengine-web.xml")));
+  private static IFile findAppEngineDescriptor(IProject project) throws AppEngineException {
+    IFile descriptorFile = WebProjectUtil.findInWebInf(project, new Path("appengine-web.xml"));
+    if (descriptorFile == null || !descriptorFile.exists()) {
+      throw new AppEngineException("appengine-web.xml not found");
+    }
+    return descriptorFile;
   }
 
+  /** Return {@code true} if the changed files may result in a different virtual layout. */
+  @VisibleForTesting
+  static boolean hasLayoutChanged(Collection<IFile> changedFiles) {
+    // the virtual layout may have been reconfigured, or no longer an App Engine project
+    for (IFile changed : changedFiles) {
+      IPath projectRelativePath = changed.getProjectRelativePath();
+      if (WTP_COMPONENT_PATH.equals(projectRelativePath)
+          || WTP_FACETS_PATH.equals(projectRelativePath)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private final IProject project;
+
+  /**
+   * The App Engine descriptor file; may change due to layout changes but should never be {@code
+   * null}.
+   */
+  private IFile descriptorFile;
+
+  private AppEngineDescriptor descriptor;
+
+  /** Map of <em>base-file-name &rarr; model-element</em> pairs. */
+  private final Map<String, AppEngineResourceElement> configurations = new TreeMap<>();
+
+  private AppEngineStandardProjectElement(IProject project) throws AppEngineException {
+    this.project = project;
+    this.descriptorFile = findAppEngineDescriptor(project);
+  }
+
+  /** Return the project. */
+  public IProject getProject() {
+    return project;
+  }
+
+  /** Return the descriptor file. */
+  public IFile getDescriptorFile() {
+    return descriptorFile;
+  }
+
+  /** Adapts to {@link IFile} to allow double-clicking to open the corresponding file. */
+  @Override
+  public <T> T getAdapter(Class<T> adapter) {
+    if (adapter.isInstance(descriptorFile)) {
+      return adapter.cast(descriptorFile);
+    }
+    return null;
+  }
+
+  /** Return the configuration file models. Never {@code null}. */
   public AppEngineResourceElement[] getConfigurations() {
     return configurations.values().toArray(new AppEngineResourceElement[configurations.size()]);
   }
@@ -76,7 +156,6 @@ public class AppEngineStandardProjectElement extends AppEngineResourceElement {
     return descriptor;
   }
 
-  @Override
   public StyledString getStyledLabel() {
     StyledString result = new StyledString("App Engine");
     String qualifier = getRuntimeType();
@@ -87,103 +166,133 @@ public class AppEngineStandardProjectElement extends AppEngineResourceElement {
   }
 
   /**
-   * Handle a change to given resource (added, removed, or changed), and return the model object to
-   * be refreshed.
+   * Update to the set of resource modifications in this project (added, removed, or changed).
+   * Return {@code true} if there were changes.
+   *
+   * @throws AppEngineException when some error occurred parsing or interpreting some relevant file
    */
-  public Object resourceChanged(IFile file) {
-    Preconditions.checkNotNull(file);
-    Preconditions.checkArgument(file.getProject() == getProject());
-    try {
+  public boolean resourcesChanged(Collection<IFile> changedFiles) throws AppEngineException {
+    Preconditions.checkNotNull(changedFiles);
+    Preconditions.checkNotNull(descriptorFile);
+
+    boolean layoutChanged = hasLayoutChanged(changedFiles); // files may be newly exposed or removed
+    boolean hasNewDescriptor =
+        layoutChanged && !descriptorFile.equals(findAppEngineDescriptor(project));
+    
+    if (changedFiles.contains(descriptorFile) || hasNewDescriptor) {
+      // reload everything: e.g., may no longer be "default"
+      reload();
+      return true;
+    } else if (!descriptorFile.exists()) {
+      // if our descriptor was removed then we're not really an App Engine project
+      throw new AppEngineException(descriptorFile.getName() + " no longer exists");
+    }
+    // So descriptor is unchanged.
+
+    if (!isDefaultService()) {
+      // Only the default service carries ancilliary configuration files
+      Preconditions.checkState(configurations.isEmpty());
+      return false;
+    } else if (layoutChanged) {
+      // Reload as new configuration files may have become available or previous
+      // configuration files may have disappeared
+      return reloadConfigurationFiles();
+    }
+
+    // Since this is called on any file change to the project (e.g., to a java or text file),
+    // we walk the files and see if they may correspond to an App Engine configuration file to
+    // avoid unnecessary work. Since the layout hasn't changed then (1) reload any changed
+    // configuration file models, (2) remove any deleted models, and (3) add models for new files.
+    boolean changed = false;
+    for (IFile file : changedFiles) {
       String baseName = file.getName();
-      if ("appengine-web.xml".equals(baseName)
-          || "org.eclipse.wst.common.component".equals(baseName)) {
-        // if the appengine-web or WTP deployment assembly change, reload everything:
-        // e.g., may no longer be "default", or deployment assembly changed so may
-        // may get entirely different files)
-        reloadDescriptor();
-        reloadConfigurationFiles();
-        return getProject();
-      } else if (configurations.containsKey(baseName)) {
-        // seen before: allow the element to possibly replace itself
-        AppEngineResourceElement oldElement = configurations.get(baseName);
-        AppEngineResourceElement newElement =
-            configurations.computeIfPresent(baseName, (ignored, element) -> element.reload());
-        return oldElement == newElement ? oldElement : this;
-      } else {
-        // check if a new configuration file
-        reloadConfigurationFiles();
-        return this;
+      AppEngineResourceElement previous = configurations.get(baseName);
+      if (previous != null) {
+        // Since first file resolved wins check if this file was (and thus remains) the winner
+        if (file.equals(previous.getFile())) {
+          // Case 1 and 2: reload() returns null if underlying file no longer exists
+          configurations.compute(baseName, (ignored, element) -> element.reload());
+          changed = true;
+        }
+      } else if (elementFactories.containsKey(baseName)) {
+        // Case 3: file has a recognized configuration file name
+        AppEngineResourceElement current = configurations.compute(baseName, this::updateElement);
+        // updateElement() returns null if file not resolved
+        changed |= current != null;
       }
+    }
+    return changed;
+  }
+
+  /** Return {@code true} if this is the default service. */
+  private boolean isDefaultService() {
+    try {
+      return descriptor.getServiceId() == null || "default".equals(descriptor.getServiceId());
     } catch (AppEngineException ex) {
-      // problem loading the appengine-web.xml file
-      return null;
+      // ignore
+      return false;
     }
   }
 
   /**
-   * Reload the appengine-web.xml descriptor.
+   * Reload all data.
    *
-   * @throws AppEngineException if the descriptor has errors or could not be loaded
+   * @throws AppEngineException if the descriptor or some other configuration file has errors
    */
-  private void reloadDescriptor() throws AppEngineException {
-    Preconditions.checkState(getFile() != null && getFile().exists());
-    try (InputStream input = getFile().getContents()) {
+  private void reload() throws AppEngineException {
+    descriptorFile = findAppEngineDescriptor(project);
+    try (InputStream input = descriptorFile.getContents()) {
       descriptor = AppEngineDescriptor.parse(input);
     } catch (IOException | SAXException | CoreException ex) {
-      throw new AppEngineException("Unable to load appengine descriptor from " + getFile(), ex);
+      configurations.clear();
+      throw new AppEngineException(
+          "Unable to load appengine descriptor from " + descriptorFile, ex);
     }
+    reloadConfigurationFiles();
   }
 
   /**
-   * Reload the ancillary configuration files.
+   * Reload the ancillary configuration files. Returns {@code true} if there were changes.
    *
    * @throws AppEngineException if the descriptor has errors or could not be loaded
    */
-  private void reloadConfigurationFiles() throws AppEngineException {
+  private boolean reloadConfigurationFiles() throws AppEngineException {
     // ancillary config files are only taken from the default module
-    if (descriptor.getServiceId() != null && !"default".equals(descriptor.getServiceId())) {
+    if (!isDefaultService()) {
+      boolean wasEmpty = configurations.isEmpty();
       configurations.clear();
-      return;
+      return !wasEmpty;
     }
 
-    checkConfigurationFile(
-        "cron.xml", resolvedFile -> new CronDescriptor(getProject(), resolvedFile)); // $NON-NLS-1$
-    checkConfigurationFile(
-        "datastore-indexes.xml", // $NON-NLS-1$
-        resolvedFile -> new DatastoreIndexesDescriptor(getProject(), resolvedFile));
-    checkConfigurationFile(
-        "queue.xml",
-        resolvedFile -> new TaskQueuesDescriptor(getProject(), resolvedFile)); // $NON-NLS-1$
-    checkConfigurationFile(
-        "dos.xml",
-        resolvedFile -> new DenialOfServiceDescriptor(getProject(), resolvedFile)); // $NON-NLS-1$
-    checkConfigurationFile(
-        "dispatch.xml", // $NON-NLS-1$
-        resolvedFile -> new DispatchRoutingDescriptor(getProject(), resolvedFile));
+    boolean changed = false;
+    // check and re-resolve all configuration files
+    for (String baseName : elementFactories.keySet()) {
+      AppEngineResourceElement previous = configurations.get(baseName);
+      AppEngineResourceElement created = configurations.compute(baseName, this::updateElement);
+      changed |= created != previous;
+    }
+    return changed;
   }
 
   /**
-   * Check that the current element representation corresponds to the current configuration file.
-   * Rebuild the element representation using the provided element creator, or remove it, as
-   * required.
-   *
-   * @param fileName the name of the configuration file, expected under {@code WEB-INF}
-   * @param elementFactory creates a new element from a configuration file
+   * Update a possibly-existing configuration file element. Return the replacement element or {@code
+   * null} if the configuration file no longer exists.
    */
-  private void checkConfigurationFile(
-      String fileName, Function<IFile, AppEngineResourceElement> elementFactory) {
-    configurations.compute(
-        fileName,
-        (ignored, element) -> {
-          IFile configurationFile = WebProjectUtil.findInWebInf(getProject(), new Path(fileName));
-          if (configurationFile == null || !configurationFile.exists()) {
-            // remove the element e.g., file has disappeared
-            return null;
-          } else if (element == null || !configurationFile.equals(element.getFile())) {
-            // create or recreate the element
-            return elementFactory.apply(configurationFile);
-          }
-          return element;
-        });
+  private AppEngineResourceElement updateElement(
+      String baseName, AppEngineResourceElement element) {
+    Preconditions.checkArgument(elementFactories.containsKey(baseName));
+    // Check that each model element, if present, corresponds to the current configuration file.
+    // Rebuild the element representation using the provided element creator, or remove
+    // it, as required.
+    IFile configurationFile = WebProjectUtil.findInWebInf(project, new Path(baseName));
+    if (configurationFile == null || !configurationFile.exists()) {
+      // remove the element e.g., file has disappeared
+      return null;
+    } else if (element == null || !configurationFile.equals(element.getFile())) {
+      // create or recreate the element
+      return elementFactories.get(baseName).apply(configurationFile);
+    } else {
+      return element.reload();
+    }
   }
 }

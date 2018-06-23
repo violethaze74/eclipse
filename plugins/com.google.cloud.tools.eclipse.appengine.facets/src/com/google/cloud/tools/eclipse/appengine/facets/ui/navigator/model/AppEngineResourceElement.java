@@ -23,27 +23,27 @@ import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.jface.viewers.StyledString;
 
 /**
- * A representation for App Engine-specific configuration files. Amongst other things, it mplements
- * IAdaptable to expose the configuration file to enable Eclipse's <em>Open</em> functionality.
+ * A model representation of specific App Engine configuration files. Amongst other things, it
+ * implements IAdaptable to expose the configuration file to enable Eclipse's <em>Open</em>
+ * functionality.
  */
 public abstract class AppEngineResourceElement implements IAdaptable {
-  private final IProject project;
   private final IFile file;
 
-  public AppEngineResourceElement(IProject project, IFile file) {
-    this.project = Preconditions.checkNotNull(project);
+  public AppEngineResourceElement(IFile file) {
     this.file = Preconditions.checkNotNull(file);
     Preconditions.checkState(file.exists());
   }
 
   public IProject getProject() {
-    return project;
+    return file.getProject();
   }
 
   public IFile getFile() {
     return file;
   }
 
+  /** Adapts to {@link IFile} to allow double-clicking to open the corresponding file. */
   @Override
   public <T> T getAdapter(Class<T> adapter) {
     if (adapter.isInstance(file)) {
@@ -56,8 +56,8 @@ public abstract class AppEngineResourceElement implements IAdaptable {
   public abstract StyledString getStyledLabel();
 
   /**
-   * Offers an opportunity to return a
-   * replacement for this instance, or {@code null} to remove.
+   * Triggers a reload of any data from the source file. Offers an opportunity to provide a
+   * replacement instance, or {@code null} to remove.
    */
   public AppEngineResourceElement reload() {
     return file.exists() ? this : null;
