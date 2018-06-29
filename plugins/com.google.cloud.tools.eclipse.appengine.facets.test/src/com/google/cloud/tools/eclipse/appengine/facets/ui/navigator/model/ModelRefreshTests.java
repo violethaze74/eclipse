@@ -57,7 +57,7 @@ import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
 
-/** Test creation of AppEngineStandardProjectElement and its sub-elements. */
+/** Test creation of AppEngineProjectElement and its sub-elements. */
 public class ModelRefreshTests {
   @Rule
   public TestProjectCreator projectCreator =
@@ -69,7 +69,7 @@ public class ModelRefreshTests {
 
   /** Verify that the content block is configured for initial configuration files. */
   @Test
-  public void testAppEngineStandardProjectElementCreate_initial() throws AppEngineException {
+  public void testAppEngineProjectElementCreate_initial() throws AppEngineException {
     IProject project = projectCreator.getProject();
     IFile cronXml = ConfigurationFileUtils.createEmptyCronXml(project);
     IFile datastoreIndexesXml =
@@ -78,8 +78,8 @@ public class ModelRefreshTests {
     IFile dosXml = ConfigurationFileUtils.createEmptyDosXml(project);
     IFile queueXml = ConfigurationFileUtils.createEmptyQueueXml(project);
     
-    AppEngineStandardProjectElement projectElement =
-        AppEngineStandardProjectElement.create(project);
+    AppEngineProjectElement projectElement =
+        AppEngineProjectElement.create(project);
     AppEngineResourceElement[] subElements = projectElement.getConfigurations();
     assertNotNull(subElements);
     assertEquals(5, subElements.length);
@@ -103,10 +103,10 @@ public class ModelRefreshTests {
 
   /** Verify that the content block is progressively updated as configuration files are added. */
   @Test
-  public void testAppEngineStandardProjectElementCreate_staggered() throws AppEngineException {
+  public void testAppEngineProjectElementCreate_staggered() throws AppEngineException {
     IProject project = projectCreator.getProject();
-    AppEngineStandardProjectElement projectElement =
-        AppEngineStandardProjectElement.create(project);
+    AppEngineProjectElement projectElement =
+        AppEngineProjectElement.create(project);
     AppEngineResourceElement[] subElements = projectElement.getConfigurations();
     assertNotNull(subElements);
     assertEquals(0, subElements.length);
@@ -181,8 +181,8 @@ public class ModelRefreshTests {
     ConfigurationFileUtils.createEmptyDispatchXml(project);
     ConfigurationFileUtils.createEmptyDosXml(project);
     ConfigurationFileUtils.createEmptyQueueXml(project);
-    AppEngineStandardProjectElement projectElement =
-        AppEngineStandardProjectElement.create(project);
+    AppEngineProjectElement projectElement =
+        AppEngineProjectElement.create(project);
     final AppEngineResourceElement[] subElements = projectElement.getConfigurations();
     assertEquals(5, subElements.length);
     assertThat(subElements, hasItemInArray(instanceOf(CronDescriptor.class)));
@@ -213,8 +213,8 @@ public class ModelRefreshTests {
     ConfigurationFileUtils.createEmptyDispatchXml(project);
     ConfigurationFileUtils.createEmptyDosXml(project);
     ConfigurationFileUtils.createEmptyQueueXml(project);
-    AppEngineStandardProjectElement projectElement =
-        AppEngineStandardProjectElement.create(project);
+    AppEngineProjectElement projectElement =
+        AppEngineProjectElement.create(project);
     final AppEngineResourceElement[] subElements = projectElement.getConfigurations();
     assertEquals(5, subElements.length);
     assertThat(subElements, hasItemInArray(instanceOf(CronDescriptor.class)));
@@ -245,8 +245,8 @@ public class ModelRefreshTests {
     files.add(ConfigurationFileUtils.createEmptyDosXml(project));
     files.add(ConfigurationFileUtils.createEmptyQueueXml(project));
 
-    AppEngineStandardProjectElement projectElement =
-        AppEngineStandardProjectElement.create(project);
+    AppEngineProjectElement projectElement =
+        AppEngineProjectElement.create(project);
     files.add(projectElement.getDescriptorFile());
     final AppEngineResourceElement[] subElements = projectElement.getConfigurations();
 
@@ -268,8 +268,8 @@ public class ModelRefreshTests {
     IProject project = projectCreator.getProject();
     ConfigurationFileUtils.createAppEngineWebXml(project, "non-default");
 
-    AppEngineStandardProjectElement projectElement =
-        AppEngineStandardProjectElement.create(project);
+    AppEngineProjectElement projectElement =
+        AppEngineProjectElement.create(project);
     AppEngineResourceElement[] subElements = projectElement.getConfigurations();
     assertEquals(0, subElements.length);
 
@@ -289,8 +289,8 @@ public class ModelRefreshTests {
     IProject project = projectCreator.getProject();
     // verify the new files are not picked up yet
     IFile oldCronXml = ConfigurationFileUtils.createEmptyCronXml(project);
-    AppEngineStandardProjectElement projectElement =
-        AppEngineStandardProjectElement.create(project);
+    AppEngineProjectElement projectElement =
+        AppEngineProjectElement.create(project);
     final AppEngineResourceElement[] oldElements = projectElement.getConfigurations();
     assertEquals(1, oldElements.length);
     assertThat(oldElements, hasItemInArray(instanceOf(CronDescriptor.class)));
