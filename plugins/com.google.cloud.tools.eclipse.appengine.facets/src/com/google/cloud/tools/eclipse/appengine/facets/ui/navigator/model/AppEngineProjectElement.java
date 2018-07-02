@@ -165,7 +165,7 @@ public class AppEngineProjectElement implements IAdaptable {
 
   private AppEngineProjectElement(IProject project) throws AppEngineException {
     this.project = project;
-    this.descriptorFile = findAppEngineDescriptor(project);
+    descriptorFile = findAppEngineDescriptor(project);
   }
 
   /** Return the project. */
@@ -211,7 +211,8 @@ public class AppEngineProjectElement implements IAdaptable {
   }
 
   /** Return the App Engine environment type: {@code standard} or {@code flex}. */
-  public String getEnvironmentType() {
+  @VisibleForTesting
+  String getEnvironmentType() {
     return environmentType;
   }
 
@@ -219,7 +220,8 @@ public class AppEngineProjectElement implements IAdaptable {
    * Return the App Engine runtime type, which may depend on the {@link #getEnvironmentType()
    * environment type}.
    */
-  public String getRuntime() {
+  @VisibleForTesting
+  String getRuntime() {
     return runtime;
   }
 

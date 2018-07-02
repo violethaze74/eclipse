@@ -26,7 +26,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.google.cloud.tools.appengine.api.AppEngineException;
 import com.google.cloud.tools.eclipse.appengine.facets.AppEngineStandardFacet;
-import com.google.cloud.tools.eclipse.appengine.facets.ui.navigator.ConfigurationFileUtils;
+import com.google.cloud.tools.eclipse.test.util.project.ConfigurationFileUtils;
 import com.google.cloud.tools.eclipse.test.util.project.ProjectUtils;
 import com.google.cloud.tools.eclipse.test.util.project.TestProjectCreator;
 import com.google.cloud.tools.eclipse.util.io.ResourceUtils;
@@ -78,8 +78,7 @@ public class ModelRefreshTests {
     IFile dosXml = ConfigurationFileUtils.createEmptyDosXml(project);
     IFile queueXml = ConfigurationFileUtils.createEmptyQueueXml(project);
     
-    AppEngineProjectElement projectElement =
-        AppEngineProjectElement.create(project);
+    AppEngineProjectElement projectElement = AppEngineProjectElement.create(project);
     AppEngineResourceElement[] subElements = projectElement.getConfigurations();
     assertNotNull(subElements);
     assertEquals(5, subElements.length);
@@ -105,8 +104,7 @@ public class ModelRefreshTests {
   @Test
   public void testAppEngineProjectElementCreate_staggered() throws AppEngineException {
     IProject project = projectCreator.getProject();
-    AppEngineProjectElement projectElement =
-        AppEngineProjectElement.create(project);
+    AppEngineProjectElement projectElement = AppEngineProjectElement.create(project);
     AppEngineResourceElement[] subElements = projectElement.getConfigurations();
     assertNotNull(subElements);
     assertEquals(0, subElements.length);
@@ -119,8 +117,7 @@ public class ModelRefreshTests {
     CronDescriptor cron = findInstance(subElements, CronDescriptor.class);
     assertThat(subElements, hasItemInArray(cron));
 
-    IFile datastoreIndexesXml =
-        ConfigurationFileUtils.createEmptyDatastoreIndexesXml(project);
+    IFile datastoreIndexesXml = ConfigurationFileUtils.createEmptyDatastoreIndexesXml(project);
     projectElement.resourcesChanged(Collections.singleton(datastoreIndexesXml));
     subElements = projectElement.getConfigurations();
     assertNotNull(subElements);
@@ -181,9 +178,8 @@ public class ModelRefreshTests {
     ConfigurationFileUtils.createEmptyDispatchXml(project);
     ConfigurationFileUtils.createEmptyDosXml(project);
     ConfigurationFileUtils.createEmptyQueueXml(project);
-    AppEngineProjectElement projectElement =
-        AppEngineProjectElement.create(project);
-    final AppEngineResourceElement[] subElements = projectElement.getConfigurations();
+    AppEngineProjectElement projectElement = AppEngineProjectElement.create(project);
+    AppEngineResourceElement[] subElements = projectElement.getConfigurations();
     assertEquals(5, subElements.length);
     assertThat(subElements, hasItemInArray(instanceOf(CronDescriptor.class)));
     assertThat(subElements, hasItemInArray(instanceOf(DatastoreIndexesDescriptor.class)));
@@ -213,9 +209,8 @@ public class ModelRefreshTests {
     ConfigurationFileUtils.createEmptyDispatchXml(project);
     ConfigurationFileUtils.createEmptyDosXml(project);
     ConfigurationFileUtils.createEmptyQueueXml(project);
-    AppEngineProjectElement projectElement =
-        AppEngineProjectElement.create(project);
-    final AppEngineResourceElement[] subElements = projectElement.getConfigurations();
+    AppEngineProjectElement projectElement = AppEngineProjectElement.create(project);
+    AppEngineResourceElement[] subElements = projectElement.getConfigurations();
     assertEquals(5, subElements.length);
     assertThat(subElements, hasItemInArray(instanceOf(CronDescriptor.class)));
     assertThat(subElements, hasItemInArray(instanceOf(DatastoreIndexesDescriptor.class)));
@@ -245,10 +240,9 @@ public class ModelRefreshTests {
     files.add(ConfigurationFileUtils.createEmptyDosXml(project));
     files.add(ConfigurationFileUtils.createEmptyQueueXml(project));
 
-    AppEngineProjectElement projectElement =
-        AppEngineProjectElement.create(project);
+    AppEngineProjectElement projectElement = AppEngineProjectElement.create(project);
     files.add(projectElement.getDescriptorFile());
-    final AppEngineResourceElement[] subElements = projectElement.getConfigurations();
+    AppEngineResourceElement[] subElements = projectElement.getConfigurations();
 
     for (IFile file : files) {
       boolean changed = projectElement.resourcesChanged(Collections.singleton(file));
@@ -268,8 +262,7 @@ public class ModelRefreshTests {
     IProject project = projectCreator.getProject();
     ConfigurationFileUtils.createAppEngineWebXml(project, "non-default");
 
-    AppEngineProjectElement projectElement =
-        AppEngineProjectElement.create(project);
+    AppEngineProjectElement projectElement = AppEngineProjectElement.create(project);
     AppEngineResourceElement[] subElements = projectElement.getConfigurations();
     assertEquals(0, subElements.length);
 
@@ -289,17 +282,16 @@ public class ModelRefreshTests {
     IProject project = projectCreator.getProject();
     // verify the new files are not picked up yet
     IFile oldCronXml = ConfigurationFileUtils.createEmptyCronXml(project);
-    AppEngineProjectElement projectElement =
-        AppEngineProjectElement.create(project);
-    final AppEngineResourceElement[] oldElements = projectElement.getConfigurations();
+    AppEngineProjectElement projectElement = AppEngineProjectElement.create(project);
+    AppEngineResourceElement[] oldElements = projectElement.getConfigurations();
     assertEquals(1, oldElements.length);
     assertThat(oldElements, hasItemInArray(instanceOf(CronDescriptor.class)));
 
     // create the new WEB-INF location and populate it
-    final IFolder newWebRoot = project.getFolder("newWebRoot");
-    final IFolder newWebInf = newWebRoot.getFolder("WEB-INF");
+    IFolder newWebRoot = project.getFolder("newWebRoot");
+    IFolder newWebInf = newWebRoot.getFolder("WEB-INF");
     ResourceUtils.createFolders(newWebInf, null);
-    final IFile newDispatchXml = newWebInf.getFile("dispatch.xml");
+    IFile newDispatchXml = newWebInf.getFile("dispatch.xml");
     newDispatchXml.create(
         new ByteArrayInputStream("<dispatch-entries/>".getBytes(StandardCharsets.UTF_8)),
         true,
@@ -307,8 +299,8 @@ public class ModelRefreshTests {
     assertTrue("error creating new dispatch.xml", newDispatchXml.exists());
 
     // now link in the new WEB-INF into the overlay
-    final IWorkspace workspace = project.getWorkspace();
-    final Set<IFile> changed =
+    IWorkspace workspace = project.getWorkspace();
+    Set<IFile> changed =
         recordChangedFilesDuring(
             workspace,
             monitor -> {
@@ -325,7 +317,7 @@ public class ModelRefreshTests {
         Iterables.getOnlyElement(changed));
     assertTrue(projectElement.resourcesChanged(changed));
 
-    final AppEngineResourceElement[] newElements = projectElement.getConfigurations();
+    AppEngineResourceElement[] newElements = projectElement.getConfigurations();
     assertEquals(2, newElements.length);
     assertThat(newElements, hasItemInArray(instanceOf(CronDescriptor.class)));
     assertThat(newElements, hasItemInArray(instanceOf(DispatchRoutingDescriptor.class)));
@@ -339,8 +331,8 @@ public class ModelRefreshTests {
   /** Record and return the set of files altered when running the provided block. */
   private static Set<IFile> recordChangedFilesDuring(IWorkspace workspace, ICoreRunnable block)
       throws CoreException {
-    final Set<IFile> changed = new LinkedHashSet<>();
-    final IResourceChangeListener listener =
+    Set<IFile> changed = new LinkedHashSet<>();
+    IResourceChangeListener listener =
         event -> {
           try {
             changed.addAll(ResourceUtils.getAffectedFiles(event.getDelta()).values());
