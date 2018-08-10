@@ -500,10 +500,6 @@ public class LocalAppEngineServerLaunchConfigurationDelegate
     launch.addDebugTarget(target);
     target.engage();
 
-    // todo: programArguments is currently ignored
-    if (!Strings.isNullOrEmpty(getProgramArguments(configuration))) {
-      logger.warning("App Engine Local Server currently ignores program arguments"); //$NON-NLS-1$
-    }
     try {
       DefaultRunConfiguration devServerRunConfiguration =
           generateServerRunConfiguration(configuration, server, mode);
