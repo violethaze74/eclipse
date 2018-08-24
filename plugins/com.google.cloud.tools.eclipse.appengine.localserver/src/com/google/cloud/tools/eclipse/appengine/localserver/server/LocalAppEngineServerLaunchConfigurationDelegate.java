@@ -567,11 +567,6 @@ public class LocalAppEngineServerLaunchConfigurationDelegate
     // The 4.7 listen connector supports a connectionLimit
     IVMConnector connector =
         JavaRuntime.getVMConnector(IJavaLaunchConfigurationConstants.ID_SOCKET_LISTEN_VM_CONNECTOR);
-    if (connector == null || !connector.getArgumentOrder().contains("connectionLimit")) { //$NON-NLS-1$
-      // Attempt to retrieve our socketListenerMultipleConnector
-      connector = JavaRuntime.getVMConnector(
-          "com.google.cloud.tools.eclipse.jdt.launching.socketListenerMultipleConnector"); //$NON-NLS-1$
-    }
     if (connector == null) {
       abort("Cannot find Socket Listening connector", null, 0); //$NON-NLS-1$
       return; // keep JDT null analysis happy

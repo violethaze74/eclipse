@@ -16,7 +16,6 @@
 
 package com.google.cloud.tools.eclipse.appengine.facets;
 
-import com.google.cloud.tools.eclipse.util.CloudToolsInfo;
 import com.google.cloud.tools.eclipse.util.Templates;
 import java.io.ByteArrayInputStream;
 import java.util.Collections;
@@ -60,16 +59,6 @@ public class StandardFacetInstallDelegate implements IDelegate {
     // Schedule immediately so that it doesn't go into the SLEEPING state. Ensuring the job is
     // active is necessary for unit testing.
     installJob.schedule();
-    if (isEclipseNeon()) {
-      // https://github.com/GoogleCloudPlatform/google-cloud-eclipse/issues/1155
-      // The first ConvertJob has already been scheduled (which installs JSDT facet), and
-      // this is to suspend the second ConvertJob temporarily.
-      ConvertJobSuspender.suspendFutureConvertJobs();
-    }
-  }
-
-  private static boolean isEclipseNeon() {
-    return CloudToolsInfo.getEclipseVersion().startsWith("4.6");
   }
 
   private static class AppEngineRuntimeInstallJob extends Job {
@@ -108,26 +97,11 @@ public class StandardFacetInstallDelegate implements IDelegate {
     @Override
     protected IStatus run(IProgressMonitor monitor) {
       try {
-        if (isEclipseNeon()) {
-          // https://github.com/GoogleCloudPlatform/google-cloud-eclipse/issues/1155
-          // Wait until the first ConvertJob installs the JSDT facet.
-          waitUntilJsdtIsFixedFacet(monitor);
-          if (monitor.isCanceled()) {
-            return Status.CANCEL_STATUS;
-          }
-        }
         AppEngineStandardFacet.installAllAppEngineRuntimes(facetedProject, monitor);
         return Status.OK_STATUS;
 
       } catch (CoreException ex) {
         return ex.getStatus();
-      } catch (InterruptedException ex) {
-        return Status.CANCEL_STATUS;
-      } finally {
-        if (isEclipseNeon()) {
-          // Now resume the second ConvertJob.
-          ConvertJobSuspender.resume();
-        }
       }
     }
   }
