@@ -20,11 +20,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import com.google.cloud.tools.eclipse.appengine.facets.AppEngineStandardFacet;
 import com.google.cloud.tools.eclipse.appengine.ui.AppEngineRuntime;
 import com.google.cloud.tools.eclipse.test.util.ThreadDumpingWatchdog;
-import com.google.cloud.tools.eclipse.test.util.project.JavaRuntimeUtils;
 import com.google.cloud.tools.eclipse.test.util.project.ProjectUtils;
 import java.util.concurrent.TimeUnit;
 import org.eclipse.core.runtime.CoreException;
@@ -33,7 +33,6 @@ import org.eclipse.jst.common.project.facet.core.JavaFacet;
 import org.eclipse.jst.j2ee.web.project.facet.WebFacetUtils;
 import org.eclipse.wst.common.project.facet.core.IFacetedProject;
 import org.eclipse.wst.common.project.facet.core.ProjectFacetsManager;
-import org.junit.Assume;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -46,7 +45,6 @@ public class NewNativeAppEngineStandardProjectTest extends BaseProjectTest {
 
   @Test
   public void testWithDefaults() throws Exception {
-    Assume.assumeTrue("Requires a Java 8 JRE", JavaRuntimeUtils.hasJavaSE8());
     String[] projectFiles = {"src/main/java/HelloAppEngine.java",
         "src/main/webapp/META-INF/MANIFEST.MF", "src/main/webapp/WEB-INF/appengine-web.xml",
         "src/main/webapp/WEB-INF/web.xml", "src/main/webapp/index.html"};
@@ -56,20 +54,10 @@ public class NewNativeAppEngineStandardProjectTest extends BaseProjectTest {
 
   @Test
   public void testWithPackage() throws Exception {
-    Assume.assumeTrue("Requires a Java 8 JRE", JavaRuntimeUtils.hasJavaSE8());
     String[] projectFiles = {"src/main/java/app/engine/test/HelloAppEngine.java",
         "src/main/webapp/META-INF/MANIFEST.MF", "src/main/webapp/WEB-INF/appengine-web.xml",
         "src/main/webapp/WEB-INF/web.xml", "src/main/webapp/index.html",};
     createAndCheck("appWithPackage_java8", "app.engine.test", null /* runtime */, projectFiles);
-  }
-
-  @Test
-  public void testWithPackage_java7() throws Exception {
-    String[] projectFiles = {"src/main/java/app/engine/test/HelloAppEngine.java",
-        "src/main/webapp/META-INF/MANIFEST.MF", "src/main/webapp/WEB-INF/appengine-web.xml",
-        "src/main/webapp/WEB-INF/web.xml", "src/main/webapp/index.html",};
-    createAndCheck("appWithPackage_java7", "app.engine.test", AppEngineRuntime.STANDARD_JAVA_7,
-        projectFiles);
   }
 
   /** Create a project with the given parameters. */
@@ -93,11 +81,7 @@ public class NewNativeAppEngineStandardProjectTest extends BaseProjectTest {
       assertEquals(WebFacetUtils.WEB_31,
           facetedProject.getProjectFacetVersion(WebFacetUtils.WEB_FACET));
     } else {
-      assertEquals("Project does not have standard facet", AppEngineStandardFacet.JRE7,
-          facetedProject.getProjectFacetVersion(AppEngineStandardFacet.FACET));
-      assertEquals(JavaFacet.VERSION_1_7, facetedProject.getProjectFacetVersion(JavaFacet.FACET));
-      assertEquals(WebFacetUtils.WEB_25,
-          facetedProject.getProjectFacetVersion(WebFacetUtils.WEB_FACET));
+      fail("Runtime not handled: " + runtime);
     }
 
     for (String projectFile : projectFiles) {

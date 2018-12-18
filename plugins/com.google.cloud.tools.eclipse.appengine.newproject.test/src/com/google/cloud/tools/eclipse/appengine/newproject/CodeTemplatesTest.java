@@ -79,17 +79,6 @@ public class CodeTemplatesTest {
   }
 
   @Test
-  public void testMaterializeAppEngineStandardFiles()
-      throws CoreException, ParserConfigurationException, SAXException, IOException {
-    AppEngineProjectConfig config = new AppEngineProjectConfig();
-    IFile mostImportant = CodeTemplates.materializeAppEngineStandardFiles(project, config, monitor);
-    validateNonConfigFiles(mostImportant, "http://java.sun.com/xml/ns/javaee",
-        "http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd", "2.5");
-    validateAppEngineWebXml(AppEngineRuntime.STANDARD_JAVA_7);
-    validateLoggingProperties();
-  }
-
-  @Test
   public void testMaterializeAppEngineStandardFiles_java8()
       throws CoreException, ParserConfigurationException, SAXException, IOException {
     AppEngineProjectConfig config = new AppEngineProjectConfig();
@@ -99,26 +88,6 @@ public class CodeTemplatesTest {
         "http://xmlns.jcp.org/xml/ns/javaee/web-app_3_1.xsd", "3.1");
     validateAppEngineWebXml(AppEngineRuntime.STANDARD_JAVA_8);
     validateLoggingProperties();
-  }
-
-  @Test
-  public void testMaterializeAppEngineStandardFiles_noObjectifyWithJava7()
-      throws CoreException, ParserConfigurationException, SAXException, IOException {
-    AppEngineProjectConfig config = new AppEngineProjectConfig();
-    CodeTemplates.materializeAppEngineStandardFiles(project, config, monitor);
-    assertFalse(objectifyFilterClassExists());
-    validateObjectifyFilterConfigInWebXml(false);
-  }
-
-  @Test
-  public void testMaterializeAppEngineStandardFiles_objectifyWithJava7()
-      throws CoreException, ParserConfigurationException, SAXException, IOException {
-    AppEngineProjectConfig config = new AppEngineProjectConfig();
-    config.setAppEngineLibraries(Collections.singleton(new Library("objectify")));
-
-    CodeTemplates.materializeAppEngineStandardFiles(project, config, monitor);
-    assertFalse(objectifyFilterClassExists());
-    validateObjectifyFilterConfigInWebXml(true);
   }
 
   @Test
@@ -269,17 +238,9 @@ public class CodeTemplatesTest {
   }
 
   @Test
-  public void testIsStandardJava7RuntimeSelected_java7() {
-    AppEngineProjectConfig config = new AppEngineProjectConfig();
-    config.setRuntimeId(null);  // null runtime corresponds to Java 7 runtime
-    assertTrue(CodeTemplates.isStandardJava7RuntimeSelected(config));
-  }
-
-  @Test
-  public void testIsStandardJava7RuntimeSelected_java8() {
-    AppEngineProjectConfig config = new AppEngineProjectConfig();
-    config.setRuntimeId("java8");
-    assertFalse(CodeTemplates.isStandardJava7RuntimeSelected(config));
+  public void testIsServlet25Selected() {
+    assertFalse(CodeTemplates.isServlet25Selected(null));
+    assertFalse(CodeTemplates.isServlet25Selected(new AppEngineProjectConfig()));
   }
 
   private boolean objectifyListenerClassExists() {

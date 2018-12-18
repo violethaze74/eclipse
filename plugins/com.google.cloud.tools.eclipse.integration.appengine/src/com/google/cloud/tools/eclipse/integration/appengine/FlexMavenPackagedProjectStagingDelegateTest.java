@@ -21,7 +21,6 @@ import static org.junit.Assert.assertTrue;
 
 import com.google.cloud.tools.eclipse.appengine.deploy.StagingDelegate;
 import com.google.cloud.tools.eclipse.appengine.deploy.flex.FlexMavenPackagedProjectStagingDelegate;
-import com.google.cloud.tools.eclipse.test.util.project.JavaRuntimeUtils;
 import com.google.cloud.tools.eclipse.test.util.project.ProjectUtils;
 import java.io.IOException;
 import java.util.Map;
@@ -32,7 +31,6 @@ import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.swtbot.swt.finder.junit.SWTBotJunit4ClassRunner;
-import org.junit.Assume;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -44,8 +42,6 @@ public class FlexMavenPackagedProjectStagingDelegateTest {
   @Ignore
   @Test
   public void testStage_springBoot() throws IOException, CoreException {
-    Assume.assumeTrue("Only for JavaSE-8", JavaRuntimeUtils.hasJavaSE8());
-
     Map<String, IProject> projects =
         ProjectUtils.importProjects(
             getClass(), "test-projects/spring-boot-test.zip", false /* checkBuildErrors */, null);

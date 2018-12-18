@@ -93,9 +93,7 @@ public class SwtBotAppEngineActions {
       bot.textWithLabel("Java package:").setText(javaPackage);
     }
     if (runtime != null) {
-      if (runtime == AppEngineRuntime.STANDARD_JAVA_7) {
-        bot.comboBoxWithLabel("Java version:").setSelection("Java 7, Servlet 2.5 (deprecated)");
-      } else if (runtime == AppEngineRuntime.STANDARD_JAVA_8) {
+      if (runtime == AppEngineRuntime.STANDARD_JAVA_8) {
         bot.comboBoxWithLabel("Java version:").setSelection("Java 8, Servlet 3.1");
       } else {
         Assert.fail("Runtime not handled: " + runtime);

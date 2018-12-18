@@ -116,7 +116,7 @@ public class SwtBotTestingUtilities {
     bot.waitUntil(new DefaultCondition() {
       @Override
       public String getFailureMessage() {
-        return "Shell " + shell.getText() + " did not close"; //$NON-NLS-1$
+        return "Shell " + shell.getText() + " did not become inactive"; //$NON-NLS-1$
       }
 
       @Override
