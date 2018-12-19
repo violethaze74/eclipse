@@ -2,5 +2,5 @@ oxygen/.project
 oxygen/.settings
 photon/.project
 photon/.settings
-eclipse-2018-09/.project
-eclipse-2018-09/.settings
+eclipse-2018-*/.project
+eclipse-2018-*/.settings

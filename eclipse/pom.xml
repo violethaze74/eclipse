@@ -17,6 +17,7 @@
     <module>oxygen</module>
     <module>photon</module>
     <module>eclipse-2018-09</module>
+    <module>eclipse-2018-12</module>
   </modules>
 
   <profiles>

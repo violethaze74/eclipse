@@ -66,7 +66,7 @@ The tests need to find the Google Cloud SDK.  You can either:
 
 By default, the build is targeted against Eclipse Photon / 4.8.
 You can explicitly set the `eclipse.target` property to
-`oxygen` (4.7).
+`oxygen` (4.7), `2018-09` (4.9), or `2018-12` (4.10).
 ```
 $ mvn -Declipse.target=oxygen package
 ```
@@ -252,6 +252,8 @@ This is currently:
 
   - Eclipse Oxygen (4.7): [`eclipse/oxygen/gcp-eclipse-oxygen.target`](eclipse/oxygen/gcp-eclipse-oxygen.target)
   - Eclipse Photon (4.8): [`eclipse/photon/gcp-eclipse-photon.target`](eclipse/photon/gcp-eclipse-photon.target)
+  - Eclipse 2018-09 (4.9): [`eclipse/eclipse-2018-09/gcp-eclipse-2018-09.target`](eclipse/eclipse-2018-09/gcp-eclipse-2018-09.target)
+  - Eclipse 2018-12 (4.10): [`eclipse/eclipse-2018-12/gcp-eclipse-2018-12.target`](eclipse/eclipse-2018-12/gcp-eclipse-2018-12.target)
 
 These `.target` files are generated and *should not be manually updated*.
 Updating `.target` files directly becomes a chore once it has more than a
@@ -259,12 +261,12 @@ couple of dependencies.  We instead generate these `.target`s from
 _Target Platform Definition_ `.tpd` files.
 The `.tpd` files use a simple DSL to specify the bundles and features,
 and the location of the repositories containing them.
-The `.tpd` files are processed using the [TPD Editor](https://github.com/mbarbero/fr.obeo.releng.targetplatform)
+The `.tpd` files are processed using the [TPD Editor](https://github.com/eclipse-cbi/targetplatform-dsl)
 which resolves the specified dependencies and creates a `.target`.
 The process is:
 
   1. Install the TPD Editor, if necessary
-     - Use _Help > Install New Software_ and specify `http://mbarbero.github.io/fr.obeo.releng.targetplatform/p2/latest/`
+     - Use _Help > Install New Software_ and specify `http://download.eclipse.org/cbi/tpd/3.0.0-SNAPSHOT/`
        as the location.
      - Restart Eclipse when prompted
   2. Open the `.tpd` file in Eclipse.

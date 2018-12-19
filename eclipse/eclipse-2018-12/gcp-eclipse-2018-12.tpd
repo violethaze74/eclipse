@@ -9,11 +9,12 @@
  *    * Right-click in the editor and choose 'Set as Target Platform'
  *      to update your IDE's target platform (regenerates the .target too)
  */
-target "GCP for Eclipse Oxygen" with source requirements
-// Eclipse Platform 4.7
-// Eclipse WTP 3.9
+target "GCP for Eclipse 2018-12" with source requirements
+// Eclipse Platform 4.10
+// Eclipse WTP 3.12
 
-location "http://download.eclipse.org/releases/oxygen/" {
+// Eclipse 2018-12 RC2 (composite at http://download.eclipse.org/releases/2018-12/)
+location "http://download.eclipse.org/releases/2018-12/201812191000" {
     org.eclipse.sdk.feature.group
     org.eclipse.jdt.feature.group
     org.eclipse.m2e.feature.feature.group
@@ -33,7 +34,8 @@ location "http://download.eclipse.org/releases/oxygen/" {
 }
 
 // WTP SDKs aren't exposed through the main release links
-location "http://download.eclipse.org/webtools/downloads/drops/R3.9.3/R-3.9.3-20180302093744/repository" {
+// (composite at http://download.eclipse.org/webtools/repository/2018-12/)
+location "http://download.eclipse.org/webtools/downloads/drops/R3.12.0/S-3.12.0.RC1-20181130055351/repository" {
     org.eclipse.jst.web_sdk.feature.feature.group
     org.eclipse.jst.server_sdk.feature.feature.group
     org.eclipse.jst.common.fproj.enablement.jdt.sdk.feature.group
@@ -43,7 +45,7 @@ location "http://download.eclipse.org/webtools/downloads/drops/R3.9.3/R-3.9.3-20
     org.eclipse.wst.server_adapters.sdk.feature.feature.group
 }
 
-location "http://download.eclipse.org/linuxtools/update-docker-4.0.1" {
+location "http://download.eclipse.org/linuxtools/update-docker-4.0.2" {
     org.eclipse.linuxtools.docker.feature.feature.group
 }
 
