@@ -17,13 +17,12 @@
 package com.google.cloud.tools.eclipse.appengine.validation;
 
 /**
- * No runtime element in appengine-web.xml.
+ * Changes runtime element to java8.
  */
-class MissingRuntime extends ElementProblem {
+class UpgradeRuntimeSourceQuickFix extends XsltSourceQuickFix {
 
-  MissingRuntime() {
-    super("A runtime element is required.",
-        "com.google.cloud.tools.eclipse.appengine.validation.runtimeMarker");
+  UpgradeRuntimeSourceQuickFix() {
+    super("/xslt/upgradeRuntime.xsl", Messages.getString("upgrade.runtime.element"));
   }
 
 }
