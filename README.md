@@ -16,40 +16,39 @@ Maven for building Eclipse bundles and features.
 
 ## Requirements
 
-1. The [Google Cloud SDK](https://cloud.google.com/sdk/); install
-  this somewhere on your file system.
+1. The [Google Cloud SDK](https://cloud.google.com/sdk/); install this somewhere on your file system.
   
-  An alternative is to install _Cloud Tools for Eclipse_ into your Eclipse IDE and use its option to automatically install the _Cloud SDK_.
+   - An alternative is to install _Cloud Tools for Eclipse_ into your Eclipse IDE and use its option to automatically install the _Cloud SDK_.
 
-1. JDK 8
+2. JDK 8
 
-1. The [Eclipse IDE](https://www.eclipse.org/downloads/eclipse-packages/).
-  It's easiest to use the _Eclipse IDE for Java EE Developers_ package. You must use
-  Eclipse 4.7 (Oxygen) or later.  We use _target platforms_ to support building
-  for earlier versions of Eclipse.  You also need the following:
+3. The [Eclipse IDE](https://www.eclipse.org/downloads/eclipse-packages/).
+   It's easiest to use the _Eclipse IDE for Java EE Developers_ package. You must use
+   Eclipse 4.7 (Oxygen) or later.  We use _target platforms_ to support building
+   for earlier versions of Eclipse.  You also need the following:
 
-  1. The [M2Eclipse plugin](http://www.eclipse.org/m2e/) (also called m2e) is
-     required to import the projects into Eclipse.  M2Eclipse is included in
-     [several packages](https://www.eclipse.org/downloads/compare.php?release=photon),
-     such as the _Eclipse IDE for Java EE Developers_ package.
+   1. The [M2Eclipse plugin](http://www.eclipse.org/m2e/) (also called m2e) is
+      required to import the projects into Eclipse.  M2Eclipse is included in
+      [several packages](https://www.eclipse.org/downloads/compare.php?release=photon),
+      such as the _Eclipse IDE for Java EE Developers_ package.
 
-  2. The [m2e connector for maven-dependency-plugin](https://github.com/ianbrandt/m2e-maven-dependency-plugin)
-     should be installed from `http://ianbrandt.github.io/m2e-maven-dependency-plugin/`.
-     This connector should be prompted for by M2Eclipse.  If not, use
-     _Preferences > Maven > Discovery > Open Catalog_ and search
-     for _Dependency_ and install.
+   2. The [m2e connector for maven-dependency-plugin](https://github.com/ianbrandt/m2e-maven-dependency-plugin)
+      should be installed from `http://ianbrandt.github.io/m2e-maven-dependency-plugin/`.
+      This connector should be prompted for by M2Eclipse.  If not, use
+      _Preferences > Maven > Discovery > Open Catalog_ and search
+      for _Dependency_ and install.
 
-  3. The [Google Java Format plugin for Eclipse](https://github.com/google/google-java-format/).
-     Download the [latest version](https://github.com/google/google-java-format/releases/)
-     and place the jar into your Eclipse installation's `dropins/` directory
-     (on MacOS this may be in `Eclipse.app/Contents/Eclipse/dropins/`).
+   3. The [Google Java Format plugin for Eclipse](https://github.com/google/google-java-format/).
+      Download the [latest version](https://github.com/google/google-java-format/releases/)
+      and place the jar into your Eclipse installation's `dropins/` directory
+      (on MacOS this may be in `Eclipse.app/Contents/Eclipse/dropins/`).
 
-1. Maven 3.5.0 or later.  Although m2eclipse is bundled with its own Maven install,
+4. Maven 3.5.0 or later.  Although m2eclipse is bundled with its own Maven install,
    Maven is necessary to test command-line builds.
 
-1. git (optional: you can use EGit from within Eclipse instead)
+5. git (optional: you can use EGit from within Eclipse instead)
 
-1. Clone the project to a local directory using `git clone
+6. Clone the project to a local directory using `git clone
    https://github.com/GoogleCloudPlatform/google-cloud-eclipse.git`.
 
 ## Running Tests
@@ -125,124 +124,124 @@ target platform whenever dependencies are updated.
 
 1. Setup JDK 8 in Eclipse (this may already be set up by Eclipse's JRE/JDK auto-discovery)
 
-  1. Select `Window/Preferences` (on Mac `Eclipse/Preferences`).
+   1. Select `Window/Preferences` (on Mac `Eclipse/Preferences`).
 
-  1. Under `Java/Installed JREs` click `Add`.
+   2. Under `Java/Installed JREs` click `Add`.
 
-  1. Select Standard VM and click `Next`.
+   3. Select Standard VM and click `Next`.
 
-  1. Select the folder that contains the JDK 8 installation by clicking
-     `Directory`.
+   4. Select the folder that contains the JDK 8 installation by clicking
+      `Directory`.
 
-  1. Click `Finish`.
+   5. Click `Finish`.
 
-  1. Select `Java/Installed JREs/Execution Environments` page.
+   6. Select `Java/Installed JREs/Execution Environments` page.
 
-  1. Click on `JavaSE-1.8` in the list on the left under `Execution
-     Environments:`.
+   7. Click on `JavaSE-1.8` in the list on the left under `Execution
+      Environments:`.
 
-  1. The JDK just added should show up in the list on the right along with other
-     installed JDKs/JREs. Set the checkbox next to the JDK 8 added in the
-     previous steps to mark it as compatible with the `JavaSE-1.8` execution
-     environment.
+   8. The JDK just added should show up in the list on the right along with other
+      installed JDKs/JREs. Set the checkbox next to the JDK 8 added in the
+      previous steps to mark it as compatible with the `JavaSE-1.8` execution
+      environment.
 
-  1. Click `OK`.
+   9. Click `OK`.
 
 2. Set up the Target Platform: you will need to repeat this process whenever
    items are changed in the target platform, such as a new release of the
    `appengine-plugins-core`.
 
-  0. As described above, you must first build the target platform with Maven:
+   1. As described above, you must first build the target platform with Maven:
 
-     `$ (cd eclipse; mvn -Pide-target-platform package)`
+      `$ (cd eclipse; mvn -Pide-target-platform package)`
 
-  1. Open the `Preferences` dialog, go to `Plug-in Development` > `Target Platform`.
+   2. Open the `Preferences` dialog, go to `Plug-in Development` > `Target Platform`.
 
-  2. Click `Add...` > `Nothing` to create a new Target Platform.
+   3. Click `Add...` > `Nothing` to create a new Target Platform.
 
-  3. Name it `GCP IDE Target Platform`.
+   4. Name it `GCP IDE Target Platform`.
 
-  4. Select `Add` > `Software Site`.
+   5. Select `Add` > `Software Site`.
 
-  5. Select the `Add...` button (found beside the `Work with:` field) and then select `Local`
-     to find a local repository. Navigate to `.../eclipse/ide-target-platform/target/repository`,
-     and click `OK`.
+   6. Select the `Add...` button (found beside the `Work with:` field) and then select `Local`
+      to find a local repository. Navigate to `.../eclipse/ide-target-platform/target/repository`,
+      and click `OK`.
 
-  6. Once the main content populates, check the `Uncategorized` item to pull in all items. Click `Finish`.
+   7. Once the main content populates, check the `Uncategorized` item to pull in all items. Click `Finish`.
 
-  7. Click `Finish` to complete the new target platform definition.
+   8. Click `Finish` to complete the new target platform definition.
 
-  8. Select your new target platform (instead of Running Platform) in the `Target Platform` preferences.
+   9. Select your new target platform (instead of Running Platform) in the `Target Platform` preferences.
 
-  9. Click `Apply and Finish` to load this new target platform.
+   10. Click `Apply and Finish` to load this new target platform.
 
-  10. Eclipse will load the target.
+   11. Eclipse will load the target.
 
-3. Import the projects
+3. Import the projects.
 
-  1. Select `File/Import...` menu in Eclipse.
+   1. Select `File/Import...` menu in Eclipse.
 
-  1. Select `Existing Maven Projects` from the list.
+   2. Select `Existing Maven Projects` from the list.
 
-  1. Click `Browse...` and select the directory that
-     contains the project.
+   3. Click `Browse...` and select the directory that
+      contains the project.
 
-  1. Under `Projects:` the `pom.xml` files representing modules should be
-     displayed. Make sure that all of them are selected _except_ the sub-directories under `eclipse`, and click `Finish`.
-     - The subprojects under the `eclipse` directory define target platforms for the Tycho build. It's easier to edit the files from the `eclipse-setup` project.
+   4. Under `Projects:` the `pom.xml` files representing modules should be
+      displayed. Make sure that all of them are selected _except_ the sub-directories under `eclipse`, and click `Finish`.
 
-  1. Maven may prompt you to install several additional plugin connector plugins from
-  [Tycho](https://eclipse.org/tycho/) if they are not already installed. Click
-  `Finish` to install them. If Eclipse prompts you to install any other
-  plugins, do so.
+      - The subprojects under the `eclipse` directory define target platforms for the Tycho build. It's easier to edit the files from the `eclipse-setup` project.
 
-  1. Restart Eclipse when prompted.
+   5. Maven may prompt you to install several additional plugin connector plugins from
+      [Tycho](https://eclipse.org/tycho/) if they are not already installed. Click
+      `Finish` to install them. If Eclipse prompts you to install any other
+      plugins, do so.
 
-4. Check the imported projects:
-  1. There should be no errors in the `Markers` or `Problems` views in Eclipse.
-    However you may see several low-priority warnings.
+   6. Restart Eclipse when prompted.
+
+4. Check the imported projects.
+
+   - There should be no errors in the `Markers` or `Problems` views in Eclipse.
+      However you may see several low-priority warnings.
 
       - You may see Maven-related errors like _"plugin execution not
-         covered by lifecycle configuration"_.
-         If so, right-click on the problem and select
-         _Quick Fix_ > _Discover new m2e connectors_
-	 and follow the process to install the recommended plugin
-	 connectors.
+        covered by lifecycle configuration"_.
+        If so, right-click on the problem and select
+        _Quick Fix_ > _Discover new m2e connectors_
+	and follow the process to install the recommended plugin
+	connectors.
 
 5. Create and initialize a launch configuration:
 
-  1. Right-click the `gcloud-eclipse-tools.launch` file under the
-  `google-cloud-eclipse` module in the `Package Explorer`.
+   1. Right-click the `gcloud-eclipse-tools.launch` file under the
+      `google-cloud-eclipse` module in the `Package Explorer`.
 
-  1. Select `Run As` > `Run Configurations...`
+   2. Select `Run As` > `Run Configurations...`
 
-  1. Set variables required for launch:
+   3. Set variables required for launch:
 
       1. Go to the second tab for `Arguments`
 
-      1. Click the `Variables...` button for `VM argument:`
+      2. Click the `Variables...` button for `VM argument:`
 
-      1. Click the `Edit variables...` button
+      3. Click the `Edit variables...` button
 
-      1. Click `New...`
+      4. Click `New...`
 
-      1. Set the name to `oauth_id`, and the value to the value you want to use
-    (description optional)
+      5. Set the name to `oauth_id`, and the value to the value you want to use
+        (description optional)
 
-      1. Click `OK`, the variable will appear in the list
+      6. Click `OK`, the variable will appear in the list
 
-      1. Repeat steps 6-8 but use `oauth_secret` as the name and use the
-    corresponding value
+      7. Repeat steps 6-8 but use `oauth_secret` as the name and use the
+         corresponding value
 
-      1. Click `OK` to close the edit variables dialog
+      8. Click `OK` to close the edit variables dialog
 
-      1. Click `Cancel` to close the variable selection dialog
+      9. Click `Cancel` to close the variable selection dialog
 
-      1. Click `Apply` to apply the changes to the run config
+      10. Click `Apply` to apply the changes to the run config
 
-  1. From the `Run` menu, select `Run History > gcloud-eclipse-tools`
-
-  1. A new instance of Eclipse launches with the plugin installed.
+   4. From the `Run` menu, select `Run History > gcloud-eclipse-tools`. A new instance of Eclipse launches with the plugin installed.
 
 
 # Updating Target Platforms
@@ -270,19 +269,19 @@ The `.tpd` files are processed using the [TPD Editor](https://github.com/eclipse
 which resolves the specified dependencies and creates a `.target`.
 The process is:
 
-  1. Install the TPD Editor, if necessary
-     - Use _Help > Install New Software_ and specify `http://download.eclipse.org/cbi/tpd/3.0.0-SNAPSHOT/`
-       as the location.
-     - Restart Eclipse when prompted
-  2. Open the `.tpd` file in Eclipse.
-  3. Make any necessary changes and save.
-     - Note that the TPDs specify artifacts using their _p2 identifiers_.
-       Bundles are specified using their OSGi Bundle Symbolic Name (e.g.,
-       `org.eclipse.core.runtime`).
-       Features are specified using their Feature ID suffixed with `.feature.group`
-       (e.g., `org.eclipse.rcp.feature.group`).
-  4. Select the file in the Package Explorer, right-click, and choose _Create Target Definition File_
-     to update the corresponding .target file.
+   1. Install the TPD Editor, if necessary
+      - Use _Help > Install New Software_ and specify `http://download.eclipse.org/cbi/tpd/3.0.0-SNAPSHOT/`
+        as the location.
+      - Restart Eclipse when prompted
+   2. Open the `.tpd` file in Eclipse.
+   3. Make any necessary changes and save.
+      - Note that the TPDs specify artifacts using their _p2 identifiers_.
+        Bundles are specified using their OSGi Bundle Symbolic Name (e.g.,
+        `org.eclipse.core.runtime`).
+        Features are specified using their Feature ID suffixed with `.feature.group`
+        (e.g., `org.eclipse.rcp.feature.group`).
+   4. Select the file in the Package Explorer, right-click, and choose _Create Target Definition File_
+      to update the corresponding .target file.
 
 Both the `.tpd` and `.target` files should be committed.
 
@@ -341,7 +340,7 @@ that a toolchain defines an `id` for the specified _Execution
 Environment_ identifier.  For example, a `~/.m2/toolchains.xml` to
 configure Maven on macOS for Java 7, 8, and 11 toolchains might be:
 
-```
+```xml
 <?xml version="1.0" encoding="UTF8"?>
 <toolchains>
   <toolchain>
