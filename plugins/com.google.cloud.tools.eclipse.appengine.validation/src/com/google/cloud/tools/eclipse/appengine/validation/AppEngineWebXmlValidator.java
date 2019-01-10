@@ -50,15 +50,38 @@ class AppEngineWebXmlValidator implements XmlValidationHelper {
           document.getElementsByTagNameNS("http://appengine.google.com/ns/1.0", elementName);
       for (int i = 0; i < nodeList.getLength(); i++) {
         Node node = nodeList.item(i);
-        DocumentLocation userData = (DocumentLocation) node.getUserData("location");
+        DocumentLocation location = (DocumentLocation) node.getUserData("location");
+        
+        // extend over the start-tag and end-tag
+        int tagLength = node.getNodeName().length() + 2; // + 2 for < and >
+        location = expandLocation(location, tagLength);
+        int length = addTagLength(node, tagLength);
+        
         AppEngineBlacklistElement problem = new AppEngineBlacklistElement(
             elementName,
-            userData,
-            node.getTextContent().length());
+            location,
+            length);
         problems.add(problem);
       }
     }
     return problems;
+  }
+
+  // This is not a general purpose utility. 
+  // It only works for simple elements with no attributes or child elements
+  // and non insignificant white space in the start-tag. It does not work
+  // for empty-element tags either.
+  private static int addTagLength(Node node, int tagLength) {
+    return node.getTextContent().length() + 2 * tagLength + 1; // +1 for the / in the end-tag
+  }
+
+  private static DocumentLocation expandLocation(DocumentLocation location, int tagLength) {
+    int column = location.getColumnNumber() - tagLength;
+    if (column < 0) {
+      column = 0;
+    }
+    location = new DocumentLocation(location.getLineNumber(), column);
+    return location;
   }
 
   /**
@@ -71,27 +94,35 @@ class AppEngineWebXmlValidator implements XmlValidationHelper {
     for (int i = 0; i < nodeList.getLength(); i++) {
       Element runtimeElement = (Element) nodeList.item(i);
       String runtime = runtimeElement.getTextContent();
-      if ("java".equals(runtime)) {
-        DocumentLocation userData = (DocumentLocation) runtimeElement.getUserData("location");
-        ElementProblem problem = new ObsoleteRuntime("Java 6 runtime no longer supported", 
-            userData, runtime.length());
-        problems.add(problem);
-      } else if ("java7".equals(runtime)) {
-        DocumentLocation userData = (DocumentLocation) runtimeElement.getUserData("location");
-        ElementProblem problem = new ObsoleteRuntime("Java 7 runtime no longer supported", 
-            userData, runtime.length());
+      if ("java".equals(runtime) || "java7".equals(runtime)) {
+        ElementProblem problem = makeRuntimeProblem(runtimeElement, runtime);
         problems.add(problem);
       }
+      // else java8 is not a problem
     }
     
     if (nodeList.getLength() == 0) {
-      DocumentLocation userData =
+      DocumentLocation location =
           (DocumentLocation) document.getDocumentElement().getUserData("location");
+      DocumentLocation expandedLocation = new DocumentLocation(location.getLineNumber(), 0);
       ElementProblem problem = new ObsoleteRuntime("Java 7 runtime no longer supported", 
-          userData, 1);
+          expandedLocation, "<appengine-web-app ".length());
       problems.add(problem);
     }
     
     return problems;
+  }
+
+  private static ElementProblem makeRuntimeProblem(Element runtimeElement, String runtime) {
+    DocumentLocation location = (DocumentLocation) runtimeElement.getUserData("location");
+    // extend over the start-tag and end-tag
+    int tagLength = runtimeElement.getNodeName().length() + 2;
+    DocumentLocation expandedLocation = expandLocation(location, tagLength);
+    int length = addTagLength(runtimeElement, tagLength);
+    
+    String runtimeName = "java".equals(runtime) ? "Java 6" : "Java 7";
+    ElementProblem problem = new ObsoleteRuntime(runtimeName + " runtime no longer supported", 
+        expandedLocation, length);
+    return problem;
   }
 }

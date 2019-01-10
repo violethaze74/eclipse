@@ -32,6 +32,10 @@ public class AppEngineWebXmlValidatorTest {
   
   private Document document;
   private final AppEngineWebXmlValidator validator = new AppEngineWebXmlValidator();
+  
+  // TODO we need to move these into a standard location
+  private static final String RUNTIME_MARKER_ID =
+      "com.google.cloud.tools.eclipse.appengine.validation.runtimeMarker";
 
   @Before
   public void setUp() throws ParserConfigurationException {
@@ -47,18 +51,23 @@ public class AppEngineWebXmlValidatorTest {
         document.createElementNS("http://appengine.google.com/ns/1.0", "appengine-web-app");
     document.appendChild(root);
  
-    Element element =
+    Element application =
         document.createElementNS("http://appengine.google.com/ns/1.0", "application");
-    element.setUserData("location", new DocumentLocation(3, 15), null);
-    root.appendChild(element);
+    application.setUserData("location", new DocumentLocation(0, 25), null);
+    root.appendChild(application);
     Element runtime =
         document.createElementNS("http://appengine.google.com/ns/1.0", "runtime");
     root.appendChild(runtime);
     
-    List<ElementProblem> blacklist = validator.checkForProblems(null, document);
-    assertEquals(1, blacklist.size());
+    List<ElementProblem> problems = validator.checkForProblems(null, document);
+    assertEquals(1, problems.size());
     String markerId = "com.google.cloud.tools.eclipse.appengine.validation.applicationMarker";
-    assertEquals(markerId, blacklist.get(0).getMarkerId());
+    ElementProblem problem = problems.get(0);
+    assertEquals(markerId, problem.getMarkerId());
+    
+    assertEquals(0, problem.getStart().getLineNumber());
+    assertEquals(12, problem.getStart().getColumnNumber());
+    assertEquals(27, problem.getLength());    
   }
 
   @Test
@@ -72,23 +81,31 @@ public class AppEngineWebXmlValidatorTest {
     
     List<ElementProblem> problems = validator.checkForProblems(null , document);
     assertEquals(1, problems.size());
-    String markerId = "com.google.cloud.tools.eclipse.appengine.validation.runtimeMarker";
-    assertEquals(markerId, problems.get(0).getMarkerId());
+    ElementProblem problem = problems.get(0);
+    assertEquals(RUNTIME_MARKER_ID, problem.getMarkerId());
+    
+    assertEquals(2, problem.getStart().getLineNumber());
+    assertEquals(0, problem.getStart().getColumnNumber());
+    assertEquals(19, problem.getLength());
   }  
   
   @Test
   public void testCheckForJava7() {
     Element runtime =
         document.createElementNS("http://appengine.google.com/ns/1.0", "runtime");
-    runtime.setUserData("location", new DocumentLocation(3, 15), null);
+    runtime.setUserData("location", new DocumentLocation(0, 25), null);
     document.appendChild(runtime);
     Node java7 = document.createTextNode("java7");
     runtime.appendChild(java7);
     
     List<ElementProblem> problems = validator.checkForProblems(null, document);
     assertEquals(1, problems.size());
-    String markerId = "com.google.cloud.tools.eclipse.appengine.validation.runtimeMarker";
-    assertEquals(markerId, problems.get(0).getMarkerId());
+    ElementProblem problem = problems.get(0);
+    assertEquals(RUNTIME_MARKER_ID, problem.getMarkerId());
+    
+    assertEquals(0, problem.getStart().getLineNumber());
+    assertEquals(16, problem.getStart().getColumnNumber());
+    assertEquals(24, problem.getLength());    
   }  
 
   @Test
@@ -102,8 +119,7 @@ public class AppEngineWebXmlValidatorTest {
     
     List<ElementProblem> problems = validator.checkForProblems(null, document);
     assertEquals(1, problems.size());
-    String markerId = "com.google.cloud.tools.eclipse.appengine.validation.runtimeMarker";
-    assertEquals(markerId, problems.get(0).getMarkerId());
+    assertEquals(RUNTIME_MARKER_ID, problems.get(0).getMarkerId());
   }
   
 }

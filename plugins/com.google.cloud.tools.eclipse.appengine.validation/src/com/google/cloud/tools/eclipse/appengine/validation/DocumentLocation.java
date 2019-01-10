@@ -34,4 +34,9 @@ class DocumentLocation {
     return columnNumber;
   }
   
+  @Override
+  public String toString() {
+    return "Line " + lineNumber + "; Column " + columnNumber;
+  }
+  
 }
