@@ -36,17 +36,17 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
-public class HttpUtil {
+class HttpUtil {
 
-  public static final int DEFAULT_CONNECT_TIMEOUT_MS = 3000;
-  public static final int DEFAULT_READ_TIMEOUT_MS = 3000;
+  private static final int DEFAULT_CONNECT_TIMEOUT_MS = 3000;
+  private static final int DEFAULT_READ_TIMEOUT_MS = 3000;
 
   private static final String MULTIPART_BOUNDARY =
       "---------------------------45224ee4-f3c1-4b23-8df1-4012f722218c"; // some random UUID
 
   private static final HttpTransport transport = new NetHttpTransport();
 
-  public static int sendPostMultipart(String urlString, Map<String, String> parameters)
+  static int sendPostMultipart(String urlString, Map<String, String> parameters)
       throws IOException {
 
     MultipartContent postBody = new MultipartContent()
@@ -72,20 +72,25 @@ public class HttpUtil {
     return response.getStatusCode();
   }
 
-  public static int sendPost(String urlString, Map<String, String> parameters) throws IOException {
+  static int sendPost(String urlString, Map<String, String> parameters) throws IOException {
     String parametersString = getParametersString(parameters);
+    return sendPost(urlString, parametersString, "application/x-www-form-urlencoded");
+  }
 
+  static int sendPost(String urlString, String body, String mediaType) throws IOException {
+    byte[] bytesToWrite = body.getBytes(StandardCharsets.UTF_8);
+
+    URL url = new URL(urlString);
     HttpURLConnection connection = null;
     try {
-      URL url = new URL(urlString);
       connection = (HttpURLConnection) url.openConnection();
       connection.setDoOutput(true);
       connection.setRequestMethod("POST");
       // This prevent Analytics from identifying our pings as spam.
       connection.setRequestProperty("User-Agent", CloudToolsInfo.USER_AGENT);
+      connection.setRequestProperty("Content-type", mediaType);
       connection.setConnectTimeout(DEFAULT_CONNECT_TIMEOUT_MS);
       connection.setReadTimeout(DEFAULT_READ_TIMEOUT_MS);
-      byte[] bytesToWrite = parametersString.getBytes(StandardCharsets.UTF_8);
       connection.setFixedLengthStreamingMode(bytesToWrite.length);
 
       try (OutputStream out = connection.getOutputStream()) {

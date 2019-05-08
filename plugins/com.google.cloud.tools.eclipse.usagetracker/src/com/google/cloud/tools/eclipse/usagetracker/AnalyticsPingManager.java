@@ -24,6 +24,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.escape.CharEscaperBuilder;
 import com.google.common.escape.Escaper;
+import com.google.gson.Gson;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -55,6 +56,13 @@ public class AnalyticsPingManager {
   private static final Logger logger = Logger.getLogger(AnalyticsPingManager.class.getName());
 
   private static final String ANALYTICS_COLLECTION_URL = "https://ssl.google-analytics.com/collect";
+  private static final String CLEAR_CUT_COLLECTION_URL = "https://play.google.com/log";
+
+  // flag for Clearcut 
+  private static final boolean USE_CLEAR_CUT = false;
+
+  // flag for Google Analytics 
+  private static final boolean USE_GOOGLE_ANALYTICS = true;
 
   // Fixed-value query parameters present in every ping, and their fixed values:
   //
@@ -79,11 +87,15 @@ public class AnalyticsPingManager {
 
   private static AnalyticsPingManager instance;
 
-  private final String endpointUrl;
+  // analytics services
+  private final String analyticsUrl;
+  private final String clearCutUrl;
+  
   // Preference store (should be configuration scoped) from which we get UUID, opt-in status, etc.
   private final IEclipsePreferences preferences;
 
   private final ConcurrentLinkedQueue<PingEvent> pingEventQueue;
+  
   @VisibleForTesting
   final Job eventFlushJob = new Job("Analytics Event Submission") {
     @Override
@@ -97,21 +109,27 @@ public class AnalyticsPingManager {
     }
   };
 
+  private int sequencePosition = 0;
+
   @VisibleForTesting
-  AnalyticsPingManager(String endpointUrl, IEclipsePreferences preferences,
+  AnalyticsPingManager(String analyticsUrl, String clearCutUrl, IEclipsePreferences preferences,
       ConcurrentLinkedQueue<PingEvent> concurrentLinkedQueue) {
-    this.endpointUrl = endpointUrl;
+    this.analyticsUrl = analyticsUrl;
+    this.clearCutUrl = clearCutUrl;
     this.preferences = Preconditions.checkNotNull(preferences);
     pingEventQueue = concurrentLinkedQueue;
   }
 
   public static synchronized AnalyticsPingManager getInstance() {
     if (instance == null) {
-      String endpointUrl = null;
+      String analyticsUrl = null;
+      String clearCutUrl = null;
       if (!Platform.inDevelopmentMode() && isTrackingIdDefined()) {
-        endpointUrl = ANALYTICS_COLLECTION_URL;  // Enable only in production env.
+        // Enable only in production environment.
+        clearCutUrl = CLEAR_CUT_COLLECTION_URL;
+        analyticsUrl = ANALYTICS_COLLECTION_URL;
       }
-      instance = new AnalyticsPingManager(endpointUrl, AnalyticsPreferences.getPreferenceNode(),
+      instance = new AnalyticsPingManager(analyticsUrl, clearCutUrl, AnalyticsPreferences.getPreferenceNode(),
           new ConcurrentLinkedQueue<PingEvent>());
     }
     return instance;
@@ -201,7 +219,7 @@ public class AnalyticsPingManager {
     Preconditions.checkArgument(!Strings.isNullOrEmpty(eventName), "eventName null or empty");
     Preconditions.checkNotNull(metadata);
 
-    if (endpointUrl != null) {
+    if (analyticsUrl != null || clearCutUrl != null) {
       // Note: always enqueue if a user has not seen the opt-in dialog yet; enqueuing itself
       // doesn't mean that the event ping will be posted.
       if (userHasOptedIn() || !userHasRegisteredOptInStatus()) {
@@ -212,14 +230,31 @@ public class AnalyticsPingManager {
     }
   }
 
+  /**
+   * This is the only method that makes an HTTP connection. Everything else
+   * ultimately funnels through here. 
+   */
   private void sendPing(PingEvent pingEvent) {
     if (userHasOptedIn()) {
-      try {
-        Map<String, String> parametersMap = buildParametersMap(pingEvent);
-        HttpUtil.sendPost(endpointUrl, parametersMap);
-      } catch (IOException ex) {
-        // Don't try to recover or retry.
-        logger.log(Level.WARNING, "Failed to send a POST request", ex);
+      
+      if (USE_GOOGLE_ANALYTICS) {
+        try {
+          Map<String, String> parametersMap = buildParametersMap(pingEvent);
+          HttpUtil.sendPost(analyticsUrl, parametersMap);
+        } catch (IOException ex) {
+          // Don't try to recover or retry.
+          logger.log(Level.FINE, "Failed to POST to Google Analytics", ex);
+        }
+      }
+      
+      if (USE_CLEAR_CUT) {
+        try {
+          String json = jsonEncode(pingEvent);
+          HttpUtil.sendPost(clearCutUrl, json, "application/json");
+        } catch (IOException ex) {
+          // Don't recover or retry.
+          logger.log(Level.FINE, "Failed to POST to Concord", ex);
+        } 
       }
     }
   }
@@ -257,8 +292,7 @@ public class AnalyticsPingManager {
     return parametersMap;
   }
 
-  @VisibleForTesting
-  static Map<String, String> getPlatformInfo() {
+  private static ImmutableMap<String, String> getPlatformInfo() {
     return ImmutableMap.of(
         "ct4e-version", CloudToolsInfo.getToolsVersion(),
         "eclipse-version", CloudToolsInfo.getEclipseVersion());
@@ -330,5 +364,44 @@ public class AnalyticsPingManager {
       this.metadata = metadata;
       this.shell = shell;
     }
+  }
+
+  @VisibleForTesting
+  String jsonEncode(PingEvent event) {
+    Gson gson = new Gson();
+
+    Map<String, String> desktopClientInfo = new HashMap<>();
+    desktopClientInfo.put("os", System.getProperty("os.name"));
+    
+    Map<String, Object> clientInfo = new HashMap<>();
+    clientInfo.put("client_type", "DESKTOP");
+    clientInfo.put("desktop_client_info", desktopClientInfo);
+        
+    //logs/proto/cloud/concord/concord_event.proto
+    Map<String, Object> sourceExtension = new HashMap<>();
+    sourceExtension.put("console_type", CloudToolsInfo.CONSOLE_TYPE);
+    sourceExtension.put("event_name", event.eventName);
+    
+    Map<String, String> metadata = new HashMap<>(event.metadata);
+    metadata.putAll(getPlatformInfo());
+    sourceExtension.put("event_metadata", metadata);
+    
+    String sourceExtensionJsonString = gson.toJson(sourceExtension);
+    
+    List<Map<String, Object>> logEvents = new ArrayList<>(1);
+    Map<String, Object> logEvent = new HashMap<>();
+    logEvent.put("event_time_ms", System.currentTimeMillis());
+    logEvent.put("sequence_position", sequencePosition++);  
+    logEvent.put("source_extension_json", sourceExtensionJsonString);
+    logEvents.add(logEvent);
+    
+    Map<String, Object> root = new HashMap<>();
+    root.put("log_source_name", "CONCORD");
+    root.put("zwieback_cookie", getAnonymizedClientId(preferences));
+    root.put("request_time_ms", System.currentTimeMillis());
+    root.put("client_info", clientInfo);    
+    root.put("log_event", logEvents);
+    
+    return gson.toJson(root);
   }
 }
