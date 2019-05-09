@@ -58,9 +58,6 @@ public class AnalyticsPingManager {
   private static final String ANALYTICS_COLLECTION_URL = "https://ssl.google-analytics.com/collect";
   private static final String CLEAR_CUT_COLLECTION_URL = "https://play.google.com/log";
 
-  // flag for Clearcut 
-  private static final boolean USE_CLEAR_CUT = false;
-
   // flag for Google Analytics 
   private static final boolean USE_GOOGLE_ANALYTICS = true;
 
@@ -247,16 +244,24 @@ public class AnalyticsPingManager {
         }
       }
       
-      if (USE_CLEAR_CUT) {
+      if (useClearCut()) {
         try {
           String json = jsonEncode(pingEvent);
-          HttpUtil.sendPost(clearCutUrl, json, "application/json");
+          int resultCode = HttpUtil.sendPost(clearCutUrl, json, "application/json");
+          if (resultCode >= 300) {
+            logger.log(Level.FINE, "Failed to POST to Concord with HTTP result " + resultCode);
+          }
         } catch (IOException ex) {
           // Don't recover or retry.
           logger.log(Level.FINE, "Failed to POST to Concord", ex);
         } 
       }
     }
+  }
+
+  private static boolean useClearCut() {
+    String flag = System.getenv("USE_CLEARCUT");
+    return "true".equalsIgnoreCase(flag);
   }
 
   private static final Escaper METADATA_ESCAPER = new CharEscaperBuilder()
