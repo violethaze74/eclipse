@@ -22,12 +22,11 @@ import static org.junit.Assert.fail;
 
 import com.google.cloud.tools.eclipse.googleapis.IGoogleApiFactory;
 import com.google.cloud.tools.eclipse.login.IGoogleLoginService;
+import com.google.cloud.tools.eclipse.test.util.ui.CompositeUtil;
 import com.google.cloud.tools.eclipse.test.util.ui.ShellTestResource;
 import org.eclipse.core.resources.IProject;
-import org.eclipse.swt.custom.StackLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
-import org.eclipse.swt.widgets.Layout;
 import org.eclipse.swt.widgets.Shell;
 import org.junit.Rule;
 import org.junit.Test;
@@ -54,17 +53,16 @@ public abstract class DeployPropertyPageTest<P extends DeployPreferencesPanel> {
     page.setVisible(true);
     Composite preferencePageComposite = (Composite) parent.getChildren()[0];
     for (Control control : preferencePageComposite.getChildren()) {
-      if (control instanceof Composite) {
-        Composite maybeDeployPageComposite = (Composite) control;
-        Layout layout = maybeDeployPageComposite.getLayout();
-        if (layout instanceof StackLayout) {
-          StackLayout stackLayout = (StackLayout) layout;
-          assertThat(stackLayout.topControl, instanceOf(getPanelClass()));
-          return;
-        }
+      if (control instanceof ScrolledPageContent) {
+        assertThat(getDeployPreferencesPanel((Composite) control), instanceOf(getPanelClass()));
+        return;
       }
     }
     fail("Did not find the deploy preferences panel");
+  }
+
+  private DeployPreferencesPanel getDeployPreferencesPanel(Composite composite) {
+    return CompositeUtil.findControl(composite, getPanelClass());
   }
 
   protected abstract IProject getProject();

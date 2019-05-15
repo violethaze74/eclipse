@@ -564,7 +564,7 @@ public abstract class AppEngineDeployPreferencesPanel extends DeployPreferencesP
     }
   }
 
-  static class ProjectSelectionValidator extends FixedMultiValidator {
+  class ProjectSelectionValidator extends FixedMultiValidator {
 
     private final IViewerObservableValue projectInput;
     private final IViewerObservableValue projectSelection;
@@ -595,6 +595,10 @@ public abstract class AppEngineDeployPreferencesPanel extends DeployPreferencesP
         if (selectedProject == null) {
           return ValidationStatus.error(Messages.getString("projectselector.project.not.selected")); //$NON-NLS-1$
         }
+      }
+      if (selectedProject != null && project != null) {
+        return ValidationStatus.info(Messages.getString("deploy.project.summary", project.getName(),
+            ((GcpProject) selectedProject).getName()));
       }
       return ValidationStatus.ok();
     }
