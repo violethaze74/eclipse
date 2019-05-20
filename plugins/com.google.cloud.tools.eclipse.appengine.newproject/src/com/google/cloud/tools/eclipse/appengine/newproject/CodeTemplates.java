@@ -134,10 +134,12 @@ public class CodeTemplates {
       createChildFile("ObjectifyWebFilter.java", //$NON-NLS-1$
           Templates.OBJECTIFY_WEB_FILTER_TEMPLATE,
           mainPackageFolder, properties, subMonitor.split(5));
-
-        createChildFile("ObjectifyWebListener.java", //$NON-NLS-1$
-            Templates.OBJECTIFY_WEB_LISTENER_TEMPLATE,
-            mainPackageFolder, properties, subMonitor.split(5));
+    }
+    
+    if (isObjectifySelected(config)) {
+      createChildFile("ObjectifyWebListener.java", //$NON-NLS-1$
+          Templates.OBJECTIFY_WEB_LISTENER_TEMPLATE,
+          mainPackageFolder, properties, subMonitor.split(5));
     }
 
     return hello;

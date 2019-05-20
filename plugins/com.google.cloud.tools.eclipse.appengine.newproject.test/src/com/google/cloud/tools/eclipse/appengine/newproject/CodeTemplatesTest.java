@@ -149,7 +149,7 @@ public class CodeTemplatesTest {
 
     CodeTemplates.materializeAppEngineStandardFiles(project, config, monitor);
     assertFalse(objectifyFilterClassExists());
-    assertFalse(objectifyListenerClassExists());
+    assertTrue(objectifyListenerClassExists());
     validateObjectifyFilterConfigInWebXml(true);
   }
 
@@ -274,6 +274,8 @@ public class CodeTemplatesTest {
 
     NodeList filterNames =
         root.getElementsByTagNameNS("http://java.sun.com/xml/ns/javaee", "filter-name");
+    NodeList listenerClasses =
+        root.getElementsByTagNameNS("http://java.sun.com/xml/ns/javaee", "listener-class");
     if (configExpected) {
       assertEquals(2, filterNames.getLength());
       assertEquals("ObjectifyFilter", filterNames.item(0).getTextContent());
@@ -283,8 +285,12 @@ public class CodeTemplatesTest {
           root.getElementsByTagNameNS("http://java.sun.com/xml/ns/javaee", "filter-class");
       assertEquals(
           "com.googlecode.objectify.ObjectifyFilter", filterClass.item(0).getTextContent());
+      
+      assertEquals(1, listenerClasses.getLength());
+      assertEquals("ObjectifyWebListener", listenerClasses.item(0).getTextContent());
     } else {
       assertEquals(0, filterNames.getLength());
+      assertEquals(0, listenerClasses.getLength());
     }
   }
 
