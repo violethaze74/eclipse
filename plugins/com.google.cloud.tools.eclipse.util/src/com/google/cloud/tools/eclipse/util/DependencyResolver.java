@@ -33,8 +33,8 @@ import org.eclipse.aether.repository.RepositoryPolicy;
 import org.eclipse.aether.resolution.ArtifactDescriptorRequest;
 import org.eclipse.aether.resolution.ArtifactResult;
 import org.eclipse.aether.resolution.DependencyRequest;
+import org.eclipse.aether.resolution.DependencyResult;
 import org.eclipse.aether.util.artifact.JavaScopes;
-import org.eclipse.aether.util.filter.AndDependencyFilter;
 import org.eclipse.aether.util.filter.DependencyFilterUtils;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -72,9 +72,7 @@ public class DependencyResolver {
       IProgressMonitor monitor)
       throws CoreException {
     SubMonitor progress = SubMonitor.convert(monitor);
-    DependencyFilter filter =
-        new AndDependencyFilter(DependencyFilterUtils.classpathFilter(JavaScopes.RUNTIME),
-            new NonOptionalDependencyFilter());
+    DependencyFilter filter = DependencyFilterUtils.classpathFilter(JavaScopes.RUNTIME);
     
     // todo we'd prefer not to depend on m2e here
 
@@ -91,8 +89,8 @@ public class DependencyResolver {
     session.setChecksumPolicy(RepositoryPolicy.CHECKSUM_POLICY_FAIL);
 
     try {
-      List<ArtifactResult> artifacts =
-          system.resolveDependencies(session, request).getArtifactResults();
+      DependencyResult resolved = system.resolveDependencies(session, request);
+      List<ArtifactResult> artifacts = resolved.getArtifactResults();
       progress.setWorkRemaining(artifacts.size());
       List<Artifact> dependencies = new ArrayList<>();
       for (ArtifactResult result : artifacts) {

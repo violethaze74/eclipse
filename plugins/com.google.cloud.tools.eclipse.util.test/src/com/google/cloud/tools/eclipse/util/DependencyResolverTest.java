@@ -70,12 +70,26 @@ public class DependencyResolverTest {
   }
 
   @Test
-  public void testOptionalDependeciesNotIncluded() throws CoreException {
+  public void testOptionalDependenciesIncluded() throws CoreException {
     Collection<Artifact> dependencies = DependencyResolver.getTransitiveDependencies(
         "com.googlecode.objectify", "objectify", "5.1.22", monitor);
+    Collection<String> actual = getMavenCoordinates(dependencies);
+    Assert.assertTrue(actual.contains("org.joda:joda-money:0.10.0"));
+  }
+  
+  @Test
+  public void testObjectify6() throws CoreException {
+    Collection<Artifact> dependencies = DependencyResolver.getTransitiveDependencies(
+        "com.googlecode.objectify", "objectify", "6.0.3", monitor);
+    String result = "";
     for (Artifact artifact : dependencies) {
-      Assert.assertNotEquals("joda-money", artifact.getArtifactId()); 
+      if ("com.fasterxml.jackson.core".equals(artifact.getGroupId())
+          && "jackson-core".equals(artifact.getArtifactId())) {
+        return;
+      }
+      result += artifact.toString() + "\n";
     }
+    Assert.fail("Jackson missing but contained: \n" + result);
   }
 
   /**
