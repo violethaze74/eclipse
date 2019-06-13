@@ -19,7 +19,7 @@ import javax.servlet.http.HttpServletResponse;
  * Feel free to change this class or replace it using other ways for testing
  * {@link HttpServlet}s, e.g. Spring MVC Test or Mockito to suit your needs.
  */
-public class MockHttpServletResponse implements HttpServletResponse {
+class MockHttpServletResponse implements HttpServletResponse {
 
   private String contentType;
   private String encoding;
@@ -127,7 +127,8 @@ public class MockHttpServletResponse implements HttpServletResponse {
     return null;
   }
 
-  @Override @Deprecated
+  @Deprecated
+  @Override
   public String encodeRedirectUrl(String url) {
     return null;
   }
@@ -137,7 +138,8 @@ public class MockHttpServletResponse implements HttpServletResponse {
     return null;
   }
 
-  @Override @Deprecated
+  @Deprecated
+  @Override
   public String encodeUrl(String url) {
     return null;
   }
@@ -170,7 +172,8 @@ public class MockHttpServletResponse implements HttpServletResponse {
   public void setStatus(int statusCode) {
   }
 
-  @Override @Deprecated
+  @Deprecated
+  @Override
   public void setStatus(int statusCode, String message) {
   }
 
