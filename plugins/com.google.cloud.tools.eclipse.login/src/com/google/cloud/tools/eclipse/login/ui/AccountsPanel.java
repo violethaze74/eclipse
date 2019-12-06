@@ -66,7 +66,6 @@ public class AccountsPanel extends PopupDialog {
     this.imageLoader = imageLoader;
   }
 
-
   @Override
   protected Color getBackground() {
     return getShell().getDisplay().getSystemColor(SWT.COLOR_WIDGET_BACKGROUND);
@@ -113,7 +112,7 @@ public class AccountsPanel extends PopupDialog {
 
       if (account.getAvatarUrl() != null) {
         try {
-          imageLoader.loadImage(account.getAvatarUrl() + "?sz=" + avatarSize, avatar);
+          imageLoader.loadImage(account.getAvatarUrl() + "=s" + avatarSize, avatar);
         } catch (MalformedURLException ex) {
           logger.log(Level.WARNING, "malformed avatar image URL", ex);
         }
