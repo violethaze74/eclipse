@@ -10,7 +10,7 @@ addons:
 before_install:
   # change reference from now-defunct maven repository (#1406)
   - sed -i.bak -e 's|https://nexus.codehaus.org/snapshots/|https://oss.sonatype.org/content/repositories/codehaus-snapshots/|g' ~/.m2/settings.xml
-install: 
+install:
   # use mvn ≥ 3.3.9 to ensure faulty test exit states fail the build (#1276)
   # todo: mvn 3.6.3 should work with tycho
   - mvn -B -N io.takari:maven:wrapper -Dmaven=3.5.4
@@ -31,6 +31,12 @@ matrix:
     - name: "Eclipse 2018-12 (4.10) on Java 11"
       jdk: openjdk11
       env: ECLIPSE_TARGET=2018-12 MAVEN_FLAGS='--toolchains=.travisci/toolchains.xml'
+    - name: "Eclipse 2019-09 (4.13) on Java 11"
+      jdk: openjdk11
+      env: ECLIPSE_TARGET=2019-09 MAVEN_FLAGS='--toolchains=.travisci/toolchains.xml'
+    - name: "Eclipse 2019-12 (4.14) on Java 11"
+      jdk: openjdk11
+      env: ECLIPSE_TARGET=2019-12 MAVEN_FLAGS='--toolchains=.travisci/toolchains.xml'
 env:
   global:
     - CLOUD_SDK_HOME=$HOME/google-cloud-sdk
