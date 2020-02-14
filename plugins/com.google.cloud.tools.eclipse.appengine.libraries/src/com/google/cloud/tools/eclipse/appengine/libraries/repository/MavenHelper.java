@@ -54,14 +54,14 @@ public class MavenHelper {
   private static List<ArtifactRepository> getRepository(MavenCoordinates mavenCoordinates)
       throws CoreException {
     if (MavenCoordinates.MAVEN_CENTRAL_REPO.equals(mavenCoordinates.getRepository())) {
-      // M2Eclipse will use the Maven Central repo in case null is used
+      // M2Eclipse uses the Maven Central repo if the repsoitory list is null
       return null;
     } else {
-      return Collections.singletonList(getCustomRepository(mavenCoordinates.getRepository()));
+      return Collections.singletonList(makeRepository(mavenCoordinates.getRepository()));
     }
   }
 
-  private static ArtifactRepository getCustomRepository(String repository) throws CoreException {
+  private static ArtifactRepository makeRepository(String repository) throws CoreException {
     try {
       URI repoUri = new URI(repository);
       if (!repoUri.isAbsolute()) {
